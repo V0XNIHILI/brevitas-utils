@@ -1,0 +1,27 @@
+[project]
+name = "brevitas-utils"
+version = "0.0.1"
+authors = [
+  { name="Douwe den Blanken" },
+]
+description = "Utilities for Brevitas (PyTorch quantization package)"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+keywords = ["machine learning", "ml", "ai", "pytorch", "python", "quantization", "brevitas"]
+dependencies = [
+  'torch',
+  'brevitas'
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+"Homepage" = "https://github.com/V0XNIHILI/brevitas-utils"
+"Bug Tracker" = "https://github.com/V0XNIHILI/brevitas-utils/issues"
