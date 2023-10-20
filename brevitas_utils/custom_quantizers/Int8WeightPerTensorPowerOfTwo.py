@@ -1,7 +1,6 @@
+import brevitas
 import torch
 import torch.nn as nn
-
-import brevitas
 from brevitas.core.quant.delay import DelayWrapper
 from brevitas.proxy import WeightQuantProxyFromInjector
 from brevitas.quant.fixed_point import Int8WeightPerTensorFixedPoint
@@ -26,7 +25,7 @@ class ClampedQuantizePowerOfTwo(torch.autograd.Function):
                                                   maximum_log2_value)
 
         # As sign is 0 or 1, we need to convert it to -1 or 1
-        zero_corrected_sign = (sign+1.0).sign()*2-1.0
+        zero_corrected_sign = (sign + 1.0).sign() * 2.0 - 1.0
         
         return torch.exp2(clamped_rounded_log2_values) * zero_corrected_sign
 
