@@ -7,6 +7,8 @@ import torch.nn as nn
 import brevitas.nn as qnn
 from brevitas.inject import ExtendedInjector
 
+from .layer_editing_utils import replace_node_module
+
 def conv2d_to_qconv2d(conv: nn.Conv2d, **kwargs):
     return qnn.QuantConv2d(conv.in_channels, conv.out_channels,
                            conv.kernel_size, conv.stride, conv.padding,
@@ -44,7 +46,6 @@ def modules_to_qmodules(model: nn.Module,
         if isinstance(module, nn.Conv1d):
             new_child_module = conv1d_to_qconv1d(module,
                                                  weight_quant=weight_quant,
-                                                #  weight_scaling_per_output_channel=True,
                                                  bias_quant=bias_quant)
         elif isinstance(module, nn.Conv2d):
             new_child_module = conv2d_to_qconv2d(module,

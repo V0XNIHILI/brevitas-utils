@@ -8,13 +8,13 @@ from torch.utils.data import DataLoader
 
 import brevitas.nn as qnn
 from brevitas import config
-from brevitas.graph.calibrate import bias_correction_mode, calibration_mode
 from brevitas.inject import ExtendedInjector
 
 from .brevitas_class_mapping import get_brevitas_class_by_name
-from .layer_editing_utils import replace_node_module, fold_conv_bn, remove_dropout
+from .layer_editing_utils import fold_conv_bn, remove_dropout
 from .convert_to_qmodules import modules_to_qmodules
 from .typing import OptionalBatchTransform
+from .calibration import calibrate_model
 
 from metalarena.common.loop import evaluate
 
