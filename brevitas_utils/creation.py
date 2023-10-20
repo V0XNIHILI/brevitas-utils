@@ -1,6 +1,6 @@
 import copy
 
-from typing import Callable, Dict, List, Union, NamedTuple, Tuple
+from typing import Dict, List, Union, NamedTuple, Tuple
 
 import torch
 import torch.nn as nn
