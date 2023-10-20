@@ -3,7 +3,7 @@ import torch.nn as nn
 
 import brevitas.nn as qnn
 
-def get_quant_weights_and_biases(quant_model: nn.Module):
+def get_quant_weights_and_biases(quant_model: nn.Module, input_shape: tuple):
     layers = {}
 
     for name, module in quant_model.named_modules():
@@ -14,12 +14,21 @@ def get_quant_weights_and_biases(quant_model: nn.Module):
         elif isinstance(module, qnn.QuantLinear):
             layers[name] = module
 
+    activations = {}
+
+    for name, module in quant_model.named_modules():
+        if name.endswith('act_quant'):
+            activations[name] = {
+                'scale': module.scale(),
+                'zero_point': module.zero_point()
+            }
+
     # Make sure bias can be accessed
     for name, module in layers.items():
         module.cache_inference_quant_bias = True
 
     quant_model.eval()
-    quant_model.cpu()(torch.randn(1,32,63))
+    quant_model.cpu()(torch.randn(*input_shape))
 
     parameters = {}
 
@@ -27,8 +36,6 @@ def get_quant_weights_and_biases(quant_model: nn.Module):
         # Plot both the quantized and the original weights
         quant_weight = layer.quant_weight().value.flatten().cpu().detach().numpy()
         quant_bias = layer.quant_bias().value.flatten().cpu().detach().numpy()
-
-        # orig_weight = layer.weight.flatten().cpu().detach().numpy()
 
         scale = int(torch.log2(layer.quant_weight().scale).item())
 
@@ -38,4 +45,4 @@ def get_quant_weights_and_biases(quant_model: nn.Module):
             'scale': scale
         }
 
-    return parameters
+    return parameters, activations
