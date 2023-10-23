@@ -7,7 +7,8 @@ from brevitas.quant.fixed_point import Int8WeightPerTensorFixedPoint
 
 
 class ClampedQuantizePowerOfTwo(torch.autograd.Function):
-    # Clamp all inputs clamped between -1 and 1 to the closest power of two
+    """Clamp all inputs between -1 and 1 and to the closest power of two
+    """
 
     @staticmethod
     def forward(_, input: torch.Tensor, bit_width: int):
@@ -52,6 +53,7 @@ class ClampedPoTQuantizer(brevitas.jit.ScriptModule):
         if not signed:
             raise NotImplementedError(
                 "Unsigned quantization not implemented yet")
+
         self.signed = signed
 
     @brevitas.jit.script_method
