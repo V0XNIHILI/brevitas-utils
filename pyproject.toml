@@ -19,6 +19,11 @@ dependencies = [
   'torch-mate @ git+https://github.com/V0XNIHILI/torch-mate@main'
 ]
 
+[project.optional-dependencies]
+dev = [
+    'pytest'
+]
+
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"

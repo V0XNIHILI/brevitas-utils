@@ -9,3 +9,7 @@ venv
 # macOS
 
 .DS_Store
+
+# Testing
+
+.pytest_cache/
