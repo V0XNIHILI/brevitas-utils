@@ -61,5 +61,7 @@ def modules_to_qmodules(model: nn.Module,
 
         if new_child_module is not None:
             replace_node_module(model, name, new_child_module)
+        else:
+            raise NotImplementedError(f"Module {module.__class__.__name__} not supported yet.")
 
     return model
