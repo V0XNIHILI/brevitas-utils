@@ -1,6 +1,6 @@
 import copy
 
-from typing import Dict, List, Union, NamedTuple, Tuple
+from typing import Dict, List, Optional, NamedTuple, Tuple
 
 import torch
 import torch.nn as nn
@@ -22,6 +22,7 @@ class QuantConfig(NamedTuple):
     kwargs: Dict
 
 
+# For reference, see: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Inheriting-from-a-quantizer
 def create_quant_class(base_classes: List, kwargs: Dict):
     base_classes = [
         get_brevitas_class_by_name(base_class) for base_class in base_classes
@@ -47,15 +48,30 @@ def prepend_qinput(model: nn.Module,
 def create_qat_ready_model(model: nn.Module,
                            weight_quant_cfg: QuantConfig,
                            act_quant_cfg: QuantConfig,
-                           bias_quant_cfg: Union[QuantConfig, None] = None,
+                           bias_quant_cfg: Optional[QuantConfig] = None,
                            from_float_weights: bool = True,
-                           calibration_setup: Union[Tuple[DataLoader, torch.device, OptionalBatchTransform], None] = None,
+                           calibration_setup: Optional[Tuple[DataLoader, torch.device, OptionalBatchTransform]] = None,
                            skip_modules: List[type[nn.Module]] = []):
+    """Create a quantization-aware training model, ready for training.
+
+    For more details on how a custom quantizer is created, see:  (see for more details: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Inheriting-from-a-quantizer
+
+    Args:
+        model (nn.Module): Model to quantize.
+        weight_quant_cfg (QuantConfig): Weight quantization configuration
+        act_quant_cfg (QuantConfig): Activation quantization configuration
+        bias_quant_cfg (Optional[QuantConfig], optional): Bias quantization configuration. Defaults to None.
+        from_float_weights (bool, optional): Whether or not to reuse the weights from the floating point model. Defaults to True.
+        calibration_setup (Optional[Tuple[DataLoader, torch.device, OptionalBatchTransform]], optional): Dataloader, device and batch transform to be use for calibration before training. See [here](https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Calibration-based-post-training-quantization) for more information. Defaults to None.
+        skip_modules (List[type[nn.Module]], optional): Torch modules that should not be quantized. Defaults to [].
+    """
+
     weight_quant, act_quant, bias_quant = [create_quant_class(quant_cfg.base_classes, dict(quant_cfg.kwargs)) for quant_cfg in [weight_quant_cfg, act_quant_cfg, bias_quant_cfg]]
 
     folded_model = fold_conv_bn(remove_dropout(model.eval()))
     quant_model = prepend_qinput(modules_to_qmodules(folded_model, weight_quant, act_quant, bias_quant, skip_modules).train(), act_quant)
 
+    # Taken from: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Retraining-from-floating-point
     if from_float_weights == True:
         config.IGNORE_MISSING_KEYS = True
 

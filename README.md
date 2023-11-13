@@ -23,7 +23,7 @@ pip install -e .
 ```python
 import torch.nn as nn
 
-from brevitas_utils import create_qat_ready_model, get_quant_weights_and_biases
+from brevitas_utils import create_qat_ready_model, get_quant_weights_and_biases, QuantConfig
 
 model = nn.Sequential(
     nn.Linear(10, 20),
@@ -32,11 +32,11 @@ model = nn.Sequential(
 )
 
 # Define quantization configurations (see for more details: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Inheriting-from-a-quantizer)
-weight_quant_cfg = {"base_classes": ["Int8WeightPerTensorPowerOfTwo"], "kwargs": {"bit_width": 4, "narrow_range": False}}
-act_quant_cfg = {"base_classes": ["ShiftedParamFromPercentileUintQuant"], "kwargs": {"bit_width": 4, "collect_stats_steps": 1500}}
+weight_quant_cfg = QuantConfig(base_classes=["Int8WeightPerTensorPowerOfTwo"], kwargs={"bit_width": 4, "narrow_range": False})
+act_quant_cfg = QuantConfig(base_classes=["ShiftedParamFromPercentileUintQuant"], kwargs={"bit_width": 4, "collect_stats_steps": 1500})
 
 # Optional parameters for quantization
-bias_quant_cfg = {"base_classes": ["Int16Bias"]}
+bias_quant_cfg = QuantConfig(base_classes= ["Int16Bias"])
 from_float_weights = False # Do not reuse weights from the floating point model
 calibration_setup = None # Do not calibrate (via: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Calibration-based-post-training-quantization) the model
 skip_modules = [] # Quantize all modules
