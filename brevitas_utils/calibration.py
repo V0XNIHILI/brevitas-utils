@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 
 from brevitas.graph.calibrate import bias_correction_mode, calibration_mode
 
-from metalarena.common.loop import evaluate
+from torch_mate.flow.main import evaluate
 
 from .typing import OptionalBatchTransform
 

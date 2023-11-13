@@ -16,6 +16,7 @@ keywords = ["machine learning", "ml", "ai", "pytorch", "python", "quantization",
 dependencies = [
   'torch',
   'brevitas'
+  'torch-mate @ git+https://github.com/V0XNIHILI/torch-mate@main'
 ]
 
 [build-system]
