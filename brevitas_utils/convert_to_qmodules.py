@@ -12,15 +12,15 @@ from .layer_editing_utils import replace_node_module
 def conv2d_to_qconv2d(conv: nn.Conv2d, **kwargs):
     return qnn.QuantConv2d(conv.in_channels, conv.out_channels,
                            conv.kernel_size, conv.stride, conv.padding,
-                           conv.dilation, conv.groups, conv.bias is not None,
-                           conv.padding_mode, **kwargs)
+                           conv.dilation, conv.groups, conv.padding_mode,
+                           conv.bias is not None, **kwargs)
 
 
 def conv1d_to_qconv1d(conv: nn.Conv1d, **kwargs):
     return qnn.QuantConv1d(conv.in_channels, conv.out_channels,
                            conv.kernel_size, conv.stride, conv.padding,
-                           conv.dilation, conv.groups, conv.bias is not None,
-                           conv.padding_mode, **kwargs)
+                           conv.dilation, conv.groups, conv.padding_mode,
+                           conv.bias is not None, **kwargs)
 
 
 def linear_to_qlinear(linear: nn.Linear, **kwargs):
@@ -38,7 +38,14 @@ def modules_to_qmodules(model: nn.Module,
         model = copy.deepcopy(model)
 
     for name, module in model.named_modules():
-        if isinstance(module, tuple(skip_modules)):
+        if isinstance(module, tuple(skip_modules)) or isinstance(module, nn.Identity) or isinstance(module, nn.Sequential):
+            continue
+
+        # If the module is just some container module
+        if name == "":
+            continue
+
+        if module.__class__.__name__ == "Module":
             continue
 
         new_child_module = None
@@ -62,6 +69,6 @@ def modules_to_qmodules(model: nn.Module,
         if new_child_module is not None:
             replace_node_module(model, name, new_child_module)
         else:
-            raise NotImplementedError(f"Module {module.__class__.__name__} not supported yet.")
+            raise NotImplementedError(f"Module '{module.__class__.__name__}' not supported yet.")
 
     return model
