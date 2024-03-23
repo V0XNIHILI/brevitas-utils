@@ -35,7 +35,11 @@ def get_quant_weights_and_biases(quant_model: nn.Module, input_shape: tuple):
     for name, layer in layers.items():
         # Plot both the quantized and the original weights
         quant_weight = layer.quant_weight().value.cpu().detach()
-        quant_bias = layer.quant_bias().value.cpu().detach()
+        quant_bias = layer.quant_bias()
+
+        if quant_bias is not None:
+            quant_bias = quant_bias.value.cpu().detach()
+
 
         scale = int(torch.log2(layer.quant_weight().scale).item())
 
