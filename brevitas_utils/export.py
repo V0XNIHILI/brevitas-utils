@@ -19,8 +19,8 @@ def get_quant_weights_and_biases(quant_model: nn.Module, input_shape: tuple):
     for name, module in quant_model.named_modules():
         if name.endswith('act_quant'):
             activations[name] = {
-                'scale': module.scale(),
-                'zero_point': module.zero_point()
+                'scale': module.scale().cpu().detach(),
+                'zero_point': module.zero_point().cpu().detach()
             }
 
     # Make sure bias can be accessed
@@ -34,8 +34,8 @@ def get_quant_weights_and_biases(quant_model: nn.Module, input_shape: tuple):
 
     for name, layer in layers.items():
         # Plot both the quantized and the original weights
-        quant_weight = layer.quant_weight().value.flatten().cpu().detach().numpy()
-        quant_bias = layer.quant_bias().value.flatten().cpu().detach().numpy()
+        quant_weight = layer.quant_weight().value.cpu().detach()
+        quant_bias = layer.quant_bias().value.cpu().detach()
 
         scale = int(torch.log2(layer.quant_weight().scale).item())
 
