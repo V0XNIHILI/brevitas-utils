@@ -1,6 +1,8 @@
-import brevitas
 import torch
 import torch.nn as nn
+
+import brevitas
+
 from brevitas.core.quant.delay import DelayWrapper
 from brevitas.proxy import WeightQuantProxyFromInjector
 from brevitas.quant.fixed_point import Int8WeightPerTensorFixedPoint

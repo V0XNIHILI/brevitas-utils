@@ -21,7 +21,7 @@ def calibrate_model(quant_model: nn.Module,
     # Based on: https://github.com/huggingface/optimum-amd/blob/ca32e8e4f7f0c8321d0380304697c08d60c6edf9/optimum/amd/brevitas/quantizer.py#L305
     with calibration_mode(quant_model):
         with torch.no_grad():
-            for (X, _) in tqdm(calibration_loader, desc="Calibration"):
+            for (X, _) in tqdm(calibration_loader, desc="Calibrating"):
                 X = X.to(device)
                 if batch_transform is not None:
                     X = batch_transform(X)
@@ -30,7 +30,7 @@ def calibrate_model(quant_model: nn.Module,
     # Apply bias correction
     # Based on: https://github.com/huggingface/optimum-amd/blob/ca32e8e4f7f0c8321d0380304697c08d60c6edf9/optimum/amd/brevitas/quantizer.py#L313
     with bias_correction_mode(quant_model):
-        for (X, _) in tqdm(calibration_loader, desc="Bias correction"):
+        for (X, _) in tqdm(calibration_loader, desc="Correcting biases"):
             X = X.to(device)
             if batch_transform is not None:
                 X = batch_transform(X)
