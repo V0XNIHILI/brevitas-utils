@@ -4,29 +4,36 @@ from torch.utils.data import DataLoader
 
 from brevitas.graph.calibrate import bias_correction_mode, calibration_mode
 
-from torch_mate.flow.main import evaluate
+from tqdm import tqdm
 
 from .typing import OptionalBatchTransform
 
+@torch.no_grad()
 def calibrate_model(quant_model: nn.Module,
                     calibration_loader: DataLoader,
                     device: torch.device,
                     batch_transform: OptionalBatchTransform = None):
-    # Taken from: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Calibration-based-post-training-quantization
+    # Based on (but modified): https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Calibration-based-post-training-quantization
 
-    with torch.no_grad():
-        zero_loss_fn = lambda _0, _1: torch.tensor([0.0])
+    # Put the model in calibration mode to collect statistics
+    # Quantization is automatically disabled
+    # during the calibration, and re-enabled at the end
+    # Based on: https://github.com/huggingface/optimum-amd/blob/ca32e8e4f7f0c8321d0380304697c08d60c6edf9/optimum/amd/brevitas/quantizer.py#L305
+    with calibration_mode(quant_model):
+        with torch.no_grad():
+            for (X, _) in tqdm(calibration_loader, desc="Calibration"):
+                X = X.to(device)
+                if batch_transform is not None:
+                    X = batch_transform(X)
+                quant_model(X)
 
-        # Put the model in calibration mode to collect statistics
-        # Quantization is automatically disabled
-        # during the calibration, and re-enabled at the end
-        with calibration_mode(quant_model):
-            evaluate(quant_model, zero_loss_fn, calibration_loader, device,
-                     batch_transform, None)
-
-        # Apply bias correction
-        with bias_correction_mode(quant_model):
-            evaluate(quant_model, zero_loss_fn, calibration_loader, device,
-                     batch_transform, None)
-
+    # Apply bias correction
+    # Based on: https://github.com/huggingface/optimum-amd/blob/ca32e8e4f7f0c8321d0380304697c08d60c6edf9/optimum/amd/brevitas/quantizer.py#L313
+    with bias_correction_mode(quant_model):
+        for (X, _) in tqdm(calibration_loader, desc="Bias correction"):
+            X = X.to(device)
+            if batch_transform is not None:
+                X = batch_transform(X)
+            quant_model(X)
+            
     return quant_model
