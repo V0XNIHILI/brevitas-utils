@@ -7,11 +7,7 @@ def get_quant_weights_and_biases(quant_model: nn.Module, input_shape: tuple):
     layers = {}
 
     for name, module in quant_model.named_modules():
-        if isinstance(module, qnn.QuantConv1d):
-            layers[name] = module
-        elif isinstance(module, qnn.QuantConv2d):
-            layers[name] = module
-        elif isinstance(module, qnn.QuantLinear):
+        if isinstance(module, qnn.QuantConv1d) or isinstance(module, qnn.QuantConv2d) or isinstance(module, qnn.QuantLinear):
             layers[name] = module
 
     activations = {}
@@ -33,15 +29,13 @@ def get_quant_weights_and_biases(quant_model: nn.Module, input_shape: tuple):
     parameters = {}
 
     for name, layer in layers.items():
-        # Plot both the quantized and the original weights
         quant_weight = layer.quant_weight().value.cpu().detach()
         quant_bias = layer.quant_bias()
 
         if quant_bias is not None:
             quant_bias = quant_bias.value.cpu().detach()
 
-
-        scale = int(torch.log2(layer.quant_weight().scale).item())
+        scale = layer.quant_weight().scale.cpu().detach()
 
         parameters[name] = {
             'weight': quant_weight,
