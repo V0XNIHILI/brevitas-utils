@@ -1,6 +1,6 @@
 import copy
 
-from typing import List, Union
+from typing import List, Optional
 
 import torch.nn as nn
 
@@ -31,7 +31,7 @@ def linear_to_qlinear(linear: nn.Linear, **kwargs):
 def modules_to_qmodules(model: nn.Module,
                         weight_quant: ExtendedInjector,
                         act_quant: ExtendedInjector,
-                        bias_quant: Union[ExtendedInjector, None] = None,
+                        bias_quant: Optional[ExtendedInjector] = None,
                         skip_modules: List[type[nn.Module]] = [],
                         inplace=False):
     if not inplace:
