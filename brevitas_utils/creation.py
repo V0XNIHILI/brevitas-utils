@@ -49,10 +49,14 @@ def create_qat_ready_model(model: nn.Module,
                            weight_quant_cfg: QuantConfig,
                            act_quant_cfg: QuantConfig,
                            bias_quant_cfg: Optional[QuantConfig] = None,
-                           from_float_weights: bool = True,
+                           in_quant_cfg: Optional[QuantConfig] = None,
+                           load_float_weights: bool = True,
+                           remove_dropout_layers: bool = True,
                            calibration_setup: Optional[Tuple[DataLoader, torch.device, OptionalBatchTransform]] = None,
                            skip_modules: List[type[nn.Module]] = []):
     """Create a quantization-aware training model, ready for training.
+
+    Note that batch norm layers are folded and that dropout layers are removed. This is done to ensure that the model is ready for quantization-aware training.
 
     For more details on how a custom quantizer is created, see:  (see for more details: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Inheriting-from-a-quantizer
 
@@ -61,18 +65,25 @@ def create_qat_ready_model(model: nn.Module,
         weight_quant_cfg (QuantConfig): Weight quantization configuration
         act_quant_cfg (QuantConfig): Activation quantization configuration
         bias_quant_cfg (Optional[QuantConfig], optional): Bias quantization configuration. Defaults to None.
-        from_float_weights (bool, optional): Whether or not to reuse the weights from the floating point model. Defaults to True.
+        in_quant_cfg (Optional[QuantConfig], optional): Input quantization configuration; if not provided . Defaults to None.
+        load_float_weights (bool, optional): Whether or not to reuse the weights from the floating point model. Defaults to True.
+        remove_dropout_layers (bool, optional): Whether or not to remove dropout layers. Defaults to True.
         calibration_setup (Optional[Tuple[DataLoader, torch.device, OptionalBatchTransform]], optional): Dataloader, device and batch transform to be use for calibration before training. See [here](https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Calibration-based-post-training-quantization) for more information. Defaults to None.
         skip_modules (List[type[nn.Module]], optional): Torch modules that should not be quantized. Defaults to [].
     """
 
-    weight_quant, act_quant, bias_quant = [create_quant_class(quant_cfg.base_classes, dict(quant_cfg.kwargs)) for quant_cfg in [weight_quant_cfg, act_quant_cfg, bias_quant_cfg]]
+    weight_quant, act_quant, bias_quant, in_quant = [create_quant_class(quant_cfg.base_classes, dict(quant_cfg.kwargs)) if quant_cfg else None for quant_cfg in [weight_quant_cfg, act_quant_cfg, bias_quant_cfg, in_quant_cfg]]
 
-    folded_model = fold_conv_bn(remove_dropout(model.eval()))
-    quant_model = prepend_qinput(modules_to_qmodules(folded_model, weight_quant, act_quant, bias_quant, skip_modules).train(), act_quant)
+    eval_model = model.eval()
+
+    if remove_dropout_layers == True:
+        eval_model = remove_dropout(eval_model)
+
+    folded_model = fold_conv_bn(eval_model)
+    quant_model = prepend_qinput(modules_to_qmodules(folded_model, weight_quant, act_quant, bias_quant, skip_modules).train(), in_quant or act_quant)
 
     # Taken from: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Retraining-from-floating-point
-    if from_float_weights == True:
+    if load_float_weights == True:
         config.IGNORE_MISSING_KEYS = True
 
         quant_model[1].load_state_dict(folded_model.state_dict())
