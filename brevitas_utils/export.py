@@ -33,7 +33,8 @@ def get_quant_weights_and_biases(quant_model: nn.Module, input_shape: tuple, as_
                 'zero_point': zero_point
             }
 
-    # Make sure bias can be accessed
+    # Make sure bias can be accessed. Enable this flag on all modules,
+    # independently of whether they have a bias or not.
     for name, module in layers.items():
         module.cache_inference_quant_bias = True
 
