@@ -67,7 +67,7 @@ class ClampedPoTQuantizer(brevitas.jit.ScriptModule):
 
         if not signed:
             raise NotImplementedError(
-                "Unsigned quantization not implemented yet")
+                "Unsigned quantization not implemented yet for ClampedPoTQuantizer")
 
         self.signed = signed
 
@@ -77,7 +77,7 @@ class ClampedPoTQuantizer(brevitas.jit.ScriptModule):
 
         # Check if zero-point is ZeroZeroPointImpl, else raise error
         if not isinstance(self.zero_point_impl, ZeroZeroPoint):
-            raise NotImplementedError("Zero-point must be ZeroZeroPointImpl")
+            raise NotImplementedError("Zero-point must be ZeroZeroPointImpl for ClampedPoTQuantizer")
 
         zero_point = self.zero_point_impl(x, scale, self.bit_width) # TODO: not sure if passing this bitwidth is correct
 
