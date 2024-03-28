@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import torch
 import torch.nn as nn
 
@@ -5,6 +7,8 @@ import brevitas.nn as qnn
 
 
 def get_quant_weights_and_biases(quant_model: nn.Module, input_shape: tuple, as_numpy: bool = False):
+    quant_model = quant_model.eval()
+
     layers = {}
 
     for name, module in quant_model.named_modules():
@@ -38,7 +42,6 @@ def get_quant_weights_and_biases(quant_model: nn.Module, input_shape: tuple, as_
     for name, module in layers.items():
         module.cache_inference_quant_bias = True
 
-    quant_model.eval()
     quant_model.cpu()(torch.randn(*input_shape))
 
     parameters = {}
@@ -70,4 +73,4 @@ def get_quant_weights_and_biases(quant_model: nn.Module, input_shape: tuple, as_
             'scale': scale
         }
 
-    return parameters, activations
+    return OrderedDict(parameters.items()), OrderedDict(activations.items())
