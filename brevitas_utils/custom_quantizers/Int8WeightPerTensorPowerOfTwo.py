@@ -18,15 +18,13 @@ def clamped_quantize_power_of_two(input: torch.Tensor, bit_width: int):
     sign = input.sign()
     input_abs = input.abs()
 
-    input_clamped = input_abs.clamp(min=-1, max=1)
+    max = 2**(2**(bit_width-1)-1)
+    min = -max
 
-    minimum_log2_value = int(-(2**(bit_width-1) - 1))
-    maximum_log2_value = 0
+    input_clamped = input_abs.clamp(min=min, max=max)
 
     rounded_log2_values = torch.round(torch.log2(input_clamped))
-    clamped_rounded_log2_values = torch.clamp(rounded_log2_values,
-                                                minimum_log2_value,
-                                                maximum_log2_value)
+    clamped_rounded_log2_values = F.relu(rounded_log2_values)
 
     # As sign is 0 or 1, we need to convert it to -1 or 1
     zero_corrected_sign = (sign + 1.0).sign() * 2.0 - 1.0
@@ -54,15 +52,24 @@ class ClampedPoTQuantizer(brevitas.jit.ScriptModule):
 
     def __init__(self,
                  scaling_impl: nn.Module,
-                 bit_width,
-                 zero_point_impl,
-                 signed,
+                 int_scaling_impl: nn.Module,
+                 zero_point_impl: nn.Module,
+                 bit_width: int,
+                 signed: bool,
                  quant_delay_steps: int = 0):
         super(ClampedPoTQuantizer, self).__init__()
 
         self.scaling_impl = scaling_impl
-        self.bit_width = bit_width
+        self.int_scaling_impl = int_scaling_impl
         self.zero_point_impl = zero_point_impl
+
+        # TODO: Also use a bit_width_impl function instead of computing it in here?
+
+        self.bit_width = bit_width
+        self.brevitas_bit_width = 2**(bit_width-1)
+
+        # TODO: check if narrow_range is disabled!
+
         self.delay_wrapper = DelayWrapper(quant_delay_steps)
 
         if not signed:
@@ -73,18 +80,18 @@ class ClampedPoTQuantizer(brevitas.jit.ScriptModule):
 
     @brevitas.jit.script_method
     def forward(self, x: torch.Tensor):
-        scale = self.scaling_impl(x)
+        scale = self.scaling_impl(x) / self.int_scaling_impl(self.brevitas_bit_width)
 
         # Check if zero-point is ZeroZeroPointImpl, else raise error
         if not isinstance(self.zero_point_impl, ZeroZeroPoint):
             raise NotImplementedError("Zero-point must be ZeroZeroPointImpl for ClampedPoTQuantizer")
 
-        zero_point = self.zero_point_impl(x, scale, self.bit_width) # TODO: not sure if passing this bitwidth is correct
+        zero_point = self.zero_point_impl(x, scale, self.brevitas_bit_width) # TODO: not sure if passing this bitwidth is correct
 
         y = potquant(x / scale, int(self.bit_width)) * scale
         y = self.delay_wrapper(x, y)
 
-        return y, scale, zero_point, self.bit_width
+        return y, scale, zero_point, self.brevitas_bit_width
 
 
 class ClampedPoTWeightQuantizer(Int8WeightPerTensorFixedPoint):
