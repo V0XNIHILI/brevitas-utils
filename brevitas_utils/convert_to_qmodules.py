@@ -30,7 +30,7 @@ def linear_to_qlinear(linear: nn.Linear, **kwargs):
 
 def modules_to_qmodules(model: nn.Module,
                         weight_quant: ExtendedInjector,
-                        act_quant: ExtendedInjector,
+                        act_quant: Optional[ExtendedInjector] = None,
                         bias_quant: Optional[ExtendedInjector] = None,
                         skip_modules: List[type[nn.Module]] = [],
                         inplace=False):
@@ -63,6 +63,9 @@ def modules_to_qmodules(model: nn.Module,
                                                  weight_quant=weight_quant,
                                                  bias_quant=bias_quant)
         elif isinstance(module, nn.ReLU):
+            if act_quant is None:
+                continue
+
             new_child_module = qnn.QuantReLU(act_quant=act_quant,
                                              return_quant_tensor=True)
 
