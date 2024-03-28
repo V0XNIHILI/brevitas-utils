@@ -56,6 +56,7 @@ class ClampedPoTQuantizer(brevitas.jit.ScriptModule):
                  zero_point_impl: nn.Module,
                  bit_width: int,
                  signed: bool,
+                 narrow_range: bool = False,
                  quant_delay_steps: int = 0):
         super(ClampedPoTQuantizer, self).__init__()
 
@@ -66,27 +67,29 @@ class ClampedPoTQuantizer(brevitas.jit.ScriptModule):
         # TODO: Also use a bit_width_impl function instead of computing it in here?
 
         self.bit_width = bit_width
+        # Define the bit width for Brevitas that is used for scaling differently,
+        # as for example with 4 bits of signed logarithmic weights, you can represent
+        # values of signed 8 bit regular integer.
         self.brevitas_bit_width = 2**(bit_width-1)
 
-        # TODO: check if narrow_range is disabled!
+        self.signed = signed
+        self.narrow_range = narrow_range
 
         self.delay_wrapper = DelayWrapper(quant_delay_steps)
 
-        if not signed:
+        if not isinstance(self.zero_point_impl, ZeroZeroPoint):
+            raise NotImplementedError("Zero-point must be ZeroZeroPointImpl for ClampedPoTQuantizer")
+        elif not self.signed:
             raise NotImplementedError(
                 "Unsigned quantization not implemented yet for ClampedPoTQuantizer")
-
-        self.signed = signed
+        elif self.narrow_range:
+            raise ValueError("Power-of-two quantization only works correctly when narrow_range is False")
 
     @brevitas.jit.script_method
     def forward(self, x: torch.Tensor):
         scale = self.scaling_impl(x) / self.int_scaling_impl(self.brevitas_bit_width)
 
-        # Check if zero-point is ZeroZeroPointImpl, else raise error
-        if not isinstance(self.zero_point_impl, ZeroZeroPoint):
-            raise NotImplementedError("Zero-point must be ZeroZeroPointImpl for ClampedPoTQuantizer")
-
-        zero_point = self.zero_point_impl(x, scale, self.brevitas_bit_width) # TODO: not sure if passing this bitwidth is correct
+        zero_point = self.zero_point_impl(x, scale, self.brevitas_bit_width)
 
         y = potquant(x / scale, int(self.bit_width)) * scale
         y = self.delay_wrapper(x, y)
