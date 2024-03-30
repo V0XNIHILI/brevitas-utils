@@ -32,12 +32,15 @@ def create_quant_class(base_classes: List, kwargs: Dict):
 
 
 def prepend_qinput(model: nn.Module,
-                   act_quant: ExtendedInjector,
+                   in_quant: Optional[ExtendedInjector],
                    inplace=False):
     if not inplace:
         model = copy.deepcopy(model)
 
-    quantize_input = qnn.QuantIdentity(act_quant=act_quant,
+    if in_quant is None:
+        return model
+
+    quantize_input = qnn.QuantIdentity(act_quant=in_quant,
                                        return_quant_tensor=True)
 
     model = nn.Sequential(quantize_input, model)
@@ -64,7 +67,7 @@ def create_qat_ready_model(model: nn.Module,
         weight_quant_cfg (QuantConfig): Weight quantization configuration
         act_quant_cfg (Optional[QuantConfig]): Activation quantization configuration. Defaults to None.
         bias_quant_cfg (Optional[QuantConfig], optional): Bias quantization configuration. Defaults to None.
-        in_quant_cfg (Optional[QuantConfig], optional): Input quantization configuration; if not provided . Defaults to None.
+        in_quant_cfg (Optional[QuantConfig], optional): Input quantization configuration. Defaults to None.
         load_float_weights (bool, optional): Whether or not to reuse the weights from the floating point model. Defaults to True.
         remove_dropout_layers (bool, optional): Whether or not to remove dropout layers. Defaults to True.
         fold_batch_norm_layers (bool, optional): Whether or not to fold batch norm layers. Defaults to True.
@@ -87,7 +90,7 @@ def create_qat_ready_model(model: nn.Module,
     if fold_batch_norm_layers == True:
         folded_model = fold_conv_bn(folded_model)
 
-    quant_model = prepend_qinput(modules_to_qmodules(folded_model, weight_quant, act_quant, bias_quant, skip_modules).train(), in_quant or act_quant)
+    quant_model = prepend_qinput(modules_to_qmodules(folded_model, weight_quant, act_quant, bias_quant, skip_modules).train(), in_quant)
 
     # Taken from: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Retraining-from-floating-point
     if load_float_weights == True:
