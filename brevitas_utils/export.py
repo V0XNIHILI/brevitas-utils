@@ -74,12 +74,18 @@ def get_quant_weights_and_biases(quant_model: nn.Module, input_shape: tuple, as_
 
         if quant_bias_full is not None:
             quant_bias = quant_bias_full.value.cpu().detach()
+            scale = quant_bias_full.scale.cpu().detach()
 
             if as_numpy:
                 quant_bias = quant_bias.numpy()
+                scale = scale.numpy()
+
+            if len(scale.shape) == 0:
+                scale = scale.item()
 
             parameters[name]['bias'] = {
                 'value': quant_bias,
+                'scale': scale,
                 'bit_width': int(quant_bias_full.bit_width.item()),
                 'signed': quant_bias_full.signed_t.item(),
                 'zero_point': quant_bias_full.zero_point.item()
