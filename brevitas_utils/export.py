@@ -80,7 +80,7 @@ def get_quant_weights_and_biases(quant_model: nn.Module, input_shape: tuple, as_
                 quant_bias = quant_bias.numpy()
                 scale = scale.numpy()
 
-            if len(scale.shape) == 0:
+            if len(scale.shape) <= 1:
                 scale = scale.item()
 
             parameters[name]['bias'] = {
