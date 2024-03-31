@@ -49,16 +49,11 @@ def get_quant_weights_and_biases(quant_model: nn.Module, input_shape: tuple, as_
     # TODO: add input and output quant scale and zero-point
 
     for name, layer in layers.items():
-        quant_weight = layer.quant_weight().value.cpu().detach()
-        quant_bias = layer.quant_bias()
+        quant_weight_full = layer.quant_weight()
+        quant_weight = quant_weight_full.value.cpu().detach()
+        quant_bias_full = layer.quant_bias()
 
-        if quant_bias is not None:
-            quant_bias = quant_bias.value.cpu().detach()
-
-            if as_numpy:
-                quant_bias = quant_bias.numpy()
-
-        scale = layer.quant_weight().scale.cpu().detach()
+        scale = quant_weight_full.scale.cpu().detach()        
 
         if as_numpy:
             quant_weight = quant_weight.numpy()
@@ -68,9 +63,26 @@ def get_quant_weights_and_biases(quant_model: nn.Module, input_shape: tuple, as_
             scale = scale.item()
 
         parameters[name] = {
-            'weight': quant_weight,
-            'bias': quant_bias,
-            'scale': scale
+            'weight': {
+                'value': quant_weight,
+                'scale': scale,
+                'bit_width': int(quant_weight_full.bit_width.item()),
+                'signed': quant_weight_full.signed_t.item(),
+                'zero_point': quant_weight_full.zero_point.item()
+            }
         }
+
+        if quant_bias_full is not None:
+            quant_bias = quant_bias_full.value.cpu().detach()
+
+            if as_numpy:
+                quant_bias = quant_bias.numpy()
+
+            parameters[name]['bias'] = {
+                'value': quant_bias,
+                'bit_width': int(quant_bias_full.bit_width.item()),
+                'signed': quant_bias_full.signed_t.item(),
+                'zero_point': quant_bias_full.zero_point.item()
+            }
 
     return OrderedDict(parameters.items()), OrderedDict(activations.items())
