@@ -23,7 +23,7 @@ pip install -e .
 ```python
 import torch.nn as nn
 
-from brevitas_utils import create_qat_ready_model, get_quant_weights_and_biases, QuantConfig
+from brevitas_utils import create_qat_ready_model, get_quant_state_dict, QuantConfig
 
 model = nn.Sequential(
     nn.Linear(10, 20),
@@ -53,7 +53,7 @@ qat_ready_model = create_qat_ready_model(model,
 # Train as usual...
 
 # Get quantized weights and biases
-quant_weights, quant_activations = get_quant_weights_and_biases(qat_ready_model, (10,))
+quant_state_dict = get_quant_state_dict(qat_ready_model, (10,))
 ```
 
 ## License
