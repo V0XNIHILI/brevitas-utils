@@ -20,6 +20,8 @@ pip install -e .
 
 ## Usage
 
+Please see a mini-tutorial below:
+
 ```python
 import torch.nn as nn
 
@@ -54,6 +56,15 @@ qat_ready_model = create_qat_ready_model(model,
 
 # Get quantized weights and biases
 quant_state_dict = get_quant_state_dict(qat_ready_model, (10,))
+
+# Can either save and load via torch
+torch.save(quant_state_dict, "quant_model.pth")
+quant_state_dict_loaded = torch.load("quant_model.pth")
+
+# Or, can use built-in functions
+from brevitas_utils import save_quant_state_dict, load_quant_state_dict 
+save_quant_state_dict(quant_state_dict, "quant_model.pkl")
+quant_state_dict_loaded = load_quant_state_dict("quant_model.pkl")
 ```
 
 ## License

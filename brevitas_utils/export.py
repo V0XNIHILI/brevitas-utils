@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import pickle
 
 import torch
 import torch.nn as nn
@@ -8,6 +9,34 @@ import brevitas.nn as qnn
 
 def is_supported_weight_layer(module: nn.Module):
     return isinstance(module, qnn.QuantConv1d) or isinstance(module, qnn.QuantConv2d) or isinstance(module, qnn.QuantLinear)
+
+
+def save_quant_state_dict(quant_state_dict: OrderedDict, path: str):
+    """Saves the quantization state dictionary to a file.
+
+    Args:
+        quant_state_dict (OrderedDict): The quantization state dictionary.
+        path (str): The path to save the quantization state dictionary.
+    """
+
+    with open(path, 'wb') as handle:
+        pickle.dump(quant_state_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def load_quant_state_dict(path: str):
+    """Loads the quantization state dictionary from a file.
+
+    Args:
+        path (str): The path to load the quantization state dictionary.
+
+    Returns:
+        OrderedDict: The quantization state dictionary.
+    """
+
+    with open(path, 'rb') as handle:
+        quant_state_dict = pickle.load(handle)
+
+    return quant_state_dict
 
 
 def get_quant_state_dict(quant_model: nn.Module, input_shape: tuple, as_numpy: bool = False):
