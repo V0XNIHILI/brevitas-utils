@@ -51,9 +51,9 @@ def prepend_qinput(model: nn.Module,
 def load_float_weights(quant_model: nn.Module, float_model: nn.Module):
     config.IGNORE_MISSING_KEYS = True
 
-    quant_model[1].load_state_dict(float_model.state_dict())
+    quant_model.load_state_dict(float_model.state_dict())
 
-    return quant_model
+    config.IGNORE_MISSING_KEYS = False
 
 
 def create_qat_ready_model(model: nn.Module,
