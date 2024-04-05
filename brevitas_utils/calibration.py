@@ -12,7 +12,8 @@ from .typing import OptionalBatchTransform
 def calibrate_model(quant_model: nn.Module,
                     calibration_loader: DataLoader,
                     device: torch.device,
-                    batch_transform: OptionalBatchTransform = None):
+                    batch_transform: OptionalBatchTransform = None,
+                    apply_bias_correction: bool = True) -> nn.Module:
     # Based on (but modified): https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Calibration-based-post-training-quantization
 
     # Put the model in calibration mode to collect statistics
@@ -26,6 +27,9 @@ def calibrate_model(quant_model: nn.Module,
                 if batch_transform is not None:
                     X = batch_transform(X)
                 quant_model(X)
+
+    if not apply_bias_correction:
+        return quant_model
 
     # Apply bias correction
     # Based on: https://github.com/huggingface/optimum-amd/blob/ca32e8e4f7f0c8321d0380304697c08d60c6edf9/optimum/amd/brevitas/quantizer.py#L313
