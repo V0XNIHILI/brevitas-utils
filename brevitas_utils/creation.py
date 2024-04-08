@@ -31,21 +31,29 @@ def create_quant_class(base_classes: List, kwargs: Dict):
     return type('QuantBase', tuple(base_classes), kwargs)
 
 
-def prepend_qinput(model: nn.Module,
-                   in_quant: Optional[ExtendedInjector],
-                   inplace=False):
+def quantize_io(model: nn.Module,
+                in_quant: Optional[ExtendedInjector],
+                out_quant: Optional[ExtendedInjector],
+                inplace=False):
     if not inplace:
         model = copy.deepcopy(model)
 
-    if in_quant is None:
+    modules = []
+
+    if in_quant is not None:
+        modules.append(qnn.QuantIdentity(act_quant=in_quant,
+                                        return_quant_tensor=True))
+        
+    modules.append(model)
+
+    if out_quant is not None:
+        modules.append(qnn.QuantIdentity(act_quant=out_quant,
+                                        return_quant_tensor=False))
+        
+    if len(modules) == 1:
         return model
 
-    quantize_input = qnn.QuantIdentity(act_quant=in_quant,
-                                       return_quant_tensor=True)
-
-    model = nn.Sequential(quantize_input, model)
-
-    return model
+    return nn.Sequential(*modules)
 
 
 def load_float_weights(quant_model: nn.Module, float_model: nn.Module):
@@ -61,6 +69,7 @@ def create_qat_ready_model(model: nn.Module,
                            act_quant_cfg: Optional[QuantConfig] = None,
                            bias_quant_cfg: Optional[QuantConfig] = None,
                            in_quant_cfg: Optional[QuantConfig] = None,
+                           out_quant_cfg: Optional[QuantConfig] = None,
                            load_float_weights_into_model: bool = True,
                            remove_dropout_layers: bool = True,
                            fold_batch_norm_layers: bool = True,
@@ -77,6 +86,7 @@ def create_qat_ready_model(model: nn.Module,
         act_quant_cfg (Optional[QuantConfig]): Activation quantization configuration. Defaults to None.
         bias_quant_cfg (Optional[QuantConfig], optional): Bias quantization configuration. Defaults to None.
         in_quant_cfg (Optional[QuantConfig], optional): Input quantization configuration. Defaults to None.
+        out_quant_cfg (Optional[QuantConfig], optional): Output quantization configuration. Defaults to None.
         load_float_weights_into_model (bool, optional): Whether or not to reuse the weights from the floating point model. Defaults to True.
         remove_dropout_layers (bool, optional): Whether or not to remove dropout layers. Defaults to True.
         fold_batch_norm_layers (bool, optional): Whether or not to fold batch norm layers. Defaults to True.
@@ -85,7 +95,7 @@ def create_qat_ready_model(model: nn.Module,
         skip_modules (List[type[nn.Module]], optional): Torch modules that should not be quantized. Defaults to [].
     """
 
-    weight_quant, act_quant, bias_quant, in_quant = [create_quant_class(quant_cfg.base_classes, dict(quant_cfg.kwargs)) if quant_cfg else None for quant_cfg in [weight_quant_cfg, act_quant_cfg, bias_quant_cfg, in_quant_cfg]]
+    weight_quant, act_quant, bias_quant, in_quant, out_quant = [create_quant_class(quant_cfg.base_classes, dict(quant_cfg.kwargs)) if quant_cfg else None for quant_cfg in [weight_quant_cfg, act_quant_cfg, bias_quant_cfg, in_quant_cfg, out_quant_cfg]]
 
     eval_model = model.eval()
 
@@ -93,14 +103,14 @@ def create_qat_ready_model(model: nn.Module,
         eval_model = remove_dropout(eval_model)
 
     # Support weight-only (float act, bias) and weight+act (float bias) quantization
-    # If biase quant not provided, also make sure to not return a quant tensor from the activations
+    # If bias quant is not provided, also make sure to not return a quant tensor from the activations
 
     folded_model = eval_model
 
     if fold_batch_norm_layers == True:
         folded_model = fold_conv_bn(folded_model)
 
-    quant_model = prepend_qinput(modules_to_qmodules(folded_model, weight_quant, act_quant, bias_quant, skip_modules).train(), in_quant)
+    quant_model = quantize_io(modules_to_qmodules(folded_model, weight_quant, act_quant, bias_quant, skip_modules).train(), in_quant, out_quant)
 
     # Taken from: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Retraining-from-floating-point
     if load_float_weights_into_model == True:
