@@ -1,5 +1,3 @@
-from typing import Any, Dict, Tuple
-
 import copy
 
 from torch.fx.experimental.optimization import (fuse_conv_bn_eval,
