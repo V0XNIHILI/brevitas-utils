@@ -1,5 +1,7 @@
 from collections import OrderedDict
 import pickle
+from typing import Union
+from pathlib import Path
 
 import torch
 import torch.nn as nn
@@ -23,11 +25,11 @@ def save_quant_state_dict(quant_state_dict: OrderedDict, path: str):
         pickle.dump(quant_state_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_quant_state_dict(path: str):
+def load_quant_state_dict(path: Union[str, Path]):
     """Loads the quantization state dictionary from a file.
 
     Args:
-        path (str): The path to load the quantization state dictionary.
+        path (Union[str, Path]): The path to load the quantization state dictionary.
 
     Returns:
         OrderedDict: The quantization state dictionary.
@@ -50,7 +52,7 @@ def get_quant_state_dict(quant_model: nn.Module, input_shape: tuple, as_numpy: b
     Returns:
         OrderedDict: The quantization state dictionary containing the activations, weight, and bias parameters of the quantized model.
     """
-    
+
     quant_model = quant_model.eval()
 
     # Make sure bias can be accessed. Enable this flag on all modules,
@@ -88,7 +90,7 @@ def get_quant_state_dict(quant_model: nn.Module, input_shape: tuple, as_numpy: b
             quant_weight = quant_weight_full.value.cpu().detach()
             quant_bias_full = module.quant_bias()
 
-            scale = quant_weight_full.scale.cpu().detach()        
+            scale = quant_weight_full.scale.cpu().detach()
 
             if as_numpy:
                 quant_weight = quant_weight.numpy()

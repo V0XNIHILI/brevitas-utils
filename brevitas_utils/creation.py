@@ -43,13 +43,13 @@ def quantize_io(model: nn.Module,
     if in_quant is not None:
         modules.append(qnn.QuantIdentity(act_quant=in_quant,
                                         return_quant_tensor=True))
-        
+
     modules.append(model)
 
     if out_quant is not None:
         modules.append(qnn.QuantIdentity(act_quant=out_quant,
                                         return_quant_tensor=False))
-        
+
     if len(modules) == 1:
         return model
 
@@ -58,9 +58,7 @@ def quantize_io(model: nn.Module,
 
 def load_float_weights(quant_model: nn.Module, float_model: nn.Module):
     config.IGNORE_MISSING_KEYS = True
-
     quant_model.load_state_dict(float_model.state_dict())
-
     config.IGNORE_MISSING_KEYS = False
 
 
@@ -114,7 +112,12 @@ def create_qat_ready_model(model: nn.Module,
 
     # Taken from: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Retraining-from-floating-point
     if load_float_weights_into_model == True:
-        load_float_weights(quant_model[1], folded_model)
+        if isinstance(quant_model, nn.Sequential):
+            quant_model_for_float_loading = quant_model[0] if in_quant_cfg is None else quant_model[1]
+        else:
+            quant_model_for_float_loading = quant_model
+
+        load_float_weights(quant_model_for_float_loading, folded_model)
 
     if apply_bias_correction == True and calibration_setup == None:
         raise ValueError("Bias correction can only be applied if calibration is also performed.")
