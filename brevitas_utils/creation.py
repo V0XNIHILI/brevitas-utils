@@ -73,6 +73,7 @@ def create_qat_ready_model(model: nn.Module,
                            fold_batch_norm_layers: bool = True,
                            calibration_setup: Optional[Tuple[DataLoader, torch.device, OptionalBatchTransform]] = None,
                            apply_bias_correction: bool = False,
+                           apply_norm_correction: bool = False,
                            skip_modules: List[type[nn.Module]] = []):
     """Create a quantization-aware training model, ready for training. At minimum, only the weights should be quantized.
 
@@ -90,6 +91,7 @@ def create_qat_ready_model(model: nn.Module,
         fold_batch_norm_layers (bool, optional): Whether or not to fold batch norm layers. Defaults to True.
         calibration_setup (Optional[Tuple[DataLoader, torch.device, OptionalBatchTransform]], optional): Dataloader, device and batch transform to be use for calibration before training. See [here](https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Calibration-based-post-training-quantization) for more information. Defaults to None.
         apply_bias_correction (bool, optional): Whether or not to apply bias correction. Defaults to False.
+        apply_norm_correction (bool, optional): Whether or not to apply norm correction. Defaults to False.
         skip_modules (List[type[nn.Module]], optional): Torch modules that should not be quantized. Defaults to [].
     """
 
@@ -126,6 +128,11 @@ def create_qat_ready_model(model: nn.Module,
         calibration_loader, device, batch_transform = calibration_setup
 
         quant_model = quant_model.to(device)
-        quant_model = calibrate_model(quant_model, calibration_loader, device, batch_transform, apply_bias_correction)
+        quant_model = calibrate_model(quant_model,
+                                      calibration_loader,
+                                      device,
+                                      batch_transform,
+                                      apply_bias_correction,
+                                      apply_norm_correction)
 
     return quant_model.to('cpu')
