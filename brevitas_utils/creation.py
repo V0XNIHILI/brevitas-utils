@@ -24,9 +24,7 @@ class QuantConfig(NamedTuple):
 
 # For reference, see: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Inheriting-from-a-quantizer
 def create_quant_class(base_classes: List, kwargs: Dict):
-    base_classes = [
-        get_brevitas_class_by_name(base_class) for base_class in base_classes
-    ]
+    base_classes = [get_brevitas_class_by_name(base_class) for base_class in base_classes]
 
     return type('QuantBase', tuple(base_classes), kwargs)
 
