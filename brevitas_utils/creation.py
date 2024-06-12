@@ -59,6 +59,56 @@ def load_float_weights(quant_model: nn.Module, float_model: nn.Module):
     quant_model.load_state_dict(float_model.state_dict())
     config.IGNORE_MISSING_KEYS = False
 
+    return quant_model
+
+
+class PreQuantNet(nn.Module):
+    def __init__(self, net: nn.Module, remove_dropout_layers: bool = True, fold_batch_norm_layers: bool = True):
+        super(PreQuantNet, self).__init__()
+
+        eval_net = net.eval()
+
+        if remove_dropout_layers == True:
+            eval_net = remove_dropout(eval_net)
+
+        # TODO: Support weight-only (float act, bias) and weight+act (float bias) quantization
+        # If bias quant is not provided, also make sure to not return a quant tensor from the activations
+
+        folded_net = eval_net
+
+        if fold_batch_norm_layers == True:
+            folded_net = fold_conv_bn(folded_net)
+
+        self.net = folded_net
+
+        # Set forward of PreQuantNet to the forward of the net
+        self.forward = self.net.forward
+
+
+class QuantNet(nn.Sequential):
+    def __init__(self, net: nn.Module,
+                 weight_quant_cfg: QuantConfig,
+                 act_quant_cfg: Optional[QuantConfig] = None,
+                 bias_quant_cfg: Optional[QuantConfig] = None,
+                 in_quant_cfg: Optional[QuantConfig] = None,
+                 out_quant_cfg: Optional[QuantConfig] = None,
+                 skip_modules: List[type[nn.Module]] = []):
+        weight_quant, act_quant, bias_quant, in_quant, out_quant = [create_quant_class(quant_cfg.base_classes, dict(quant_cfg.kwargs)) if quant_cfg else None for quant_cfg in [weight_quant_cfg, act_quant_cfg, bias_quant_cfg, in_quant_cfg, out_quant_cfg]]
+
+        quant_net = modules_to_qmodules(net, weight_quant, act_quant, bias_quant, skip_modules).train()
+
+        quant_net_modules = []
+
+        if in_quant is not None:
+            quant_net_modules.append(qnn.QuantIdentity(act_quant=in_quant, return_quant_tensor=True))
+
+        quant_net_modules.append(quant_net)
+
+        if out_quant is not None:
+            quant_net_modules.append(qnn.QuantIdentity(act_quant=out_quant, return_quant_tensor=False))
+
+        super(QuantNet, self).__init__(*quant_net_modules)
+
 
 def create_qat_ready_model(model: nn.Module,
                            weight_quant_cfg: QuantConfig,
@@ -93,31 +143,17 @@ def create_qat_ready_model(model: nn.Module,
         skip_modules (List[type[nn.Module]], optional): Torch modules that should not be quantized. Defaults to [].
     """
 
-    weight_quant, act_quant, bias_quant, in_quant, out_quant = [create_quant_class(quant_cfg.base_classes, dict(quant_cfg.kwargs)) if quant_cfg else None for quant_cfg in [weight_quant_cfg, act_quant_cfg, bias_quant_cfg, in_quant_cfg, out_quant_cfg]]
-
-    eval_model = model.eval()
-
-    if remove_dropout_layers == True:
-        eval_model = remove_dropout(eval_model)
-
-    # Support weight-only (float act, bias) and weight+act (float bias) quantization
-    # If bias quant is not provided, also make sure to not return a quant tensor from the activations
-
-    folded_model = eval_model
-
-    if fold_batch_norm_layers == True:
-        folded_model = fold_conv_bn(folded_model)
-
-    quant_model = quantize_io(modules_to_qmodules(folded_model, weight_quant, act_quant, bias_quant, skip_modules).train(), in_quant, out_quant)
+    folded_net = PreQuantNet(model, remove_dropout_layers, fold_batch_norm_layers)
+    quant_net = QuantNet(folded_net, weight_quant_cfg, act_quant_cfg, bias_quant_cfg, in_quant_cfg, out_quant_cfg, skip_modules)
 
     # Taken from: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Retraining-from-floating-point
     if load_float_weights_into_model == True:
-        if isinstance(quant_model, nn.Sequential):
-            quant_model_for_float_loading = quant_model[0] if in_quant_cfg is None else quant_model[1]
+        if isinstance(quant_net, nn.Sequential):
+            quant_model_for_float_loading = quant_net[0] if in_quant_cfg is None else quant_net[1]
         else:
-            quant_model_for_float_loading = quant_model
+            quant_model_for_float_loading = quant_net
 
-        load_float_weights(quant_model_for_float_loading, folded_model)
+        load_float_weights(quant_model_for_float_loading, folded_net)
 
     if apply_bias_correction == True and calibration_setup == None:
         raise ValueError("Bias correction can only be applied if calibration is also performed.")
@@ -125,12 +161,11 @@ def create_qat_ready_model(model: nn.Module,
     if calibration_setup != None:
         calibration_loader, device, batch_transform = calibration_setup
 
-        quant_model = quant_model.to(device)
-        quant_model = calibrate_model(quant_model,
+        quant_net = calibrate_model(quant_net.to(device),
                                       calibration_loader,
                                       device,
                                       batch_transform,
                                       apply_bias_correction,
                                       apply_norm_correction)
 
-    return quant_model.to('cpu')
+    return quant_net.to('cpu')
