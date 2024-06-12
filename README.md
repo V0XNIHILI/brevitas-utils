@@ -2,9 +2,9 @@
 
 Library with utilities for [Brevitas](https://github.com/Xilinx/brevitas/).
 
-Features:
+## Features
 
-- 1-line conversion of a floating point PyTorch model to a model that can be used for quantization-aware training (QAT) or post-training quantization (PTQ)
+- 1-line conversion of a floating point PyTorch model to a model with post-training quantization(PTQ) applied that can be used for quantization-aware training (QAT)
   - Automatic batch normalization folding
   - Automatic removal of dropout layers
 - 1-line extraction of quantized weights and biases from a QAT model
@@ -36,7 +36,7 @@ model = nn.Sequential(
 
 ### 2. Define quantization configurations
 
-See [here](https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Inheriting-from-a-quantizer) for more details:
+See [here](https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Inheriting-from-a-quantizer) for more details.
 
 ```python
 from brevitas_utils import QuantConfig
