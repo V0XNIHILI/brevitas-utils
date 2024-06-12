@@ -66,9 +66,9 @@ qat_ready_model = create_qat_ready_model(model,
                                          weight_quant_cfg,
                                          act_quant_cfg,
                                          bias_quant_cfg,
-                                         from_float_weights,
-                                         calibration_setup,
-                                         skip_modules)
+                                         load_float_weights_into_model=from_float_weights,
+                                         calibration_setup=calibration_setup,
+                                         skip_modules=skip_modules)
 ```
 
 ### 4. Training (or not)
