@@ -85,7 +85,7 @@ class PreQuantNet(nn.Module):
         self.forward = self.net.forward
 
 
-class QuantNet(nn.Sequential):
+class QuantNet(nn.Module):
     def __init__(self, net: nn.Module,
                  weight_quant_cfg: QuantConfig,
                  act_quant_cfg: Optional[QuantConfig] = None,
@@ -93,21 +93,28 @@ class QuantNet(nn.Sequential):
                  in_quant_cfg: Optional[QuantConfig] = None,
                  out_quant_cfg: Optional[QuantConfig] = None,
                  skip_modules: List[type[nn.Module]] = []):
+        super(QuantNet, self).__init__()
+
         weight_quant, act_quant, bias_quant, in_quant, out_quant = [create_quant_class(quant_cfg.base_classes, dict(quant_cfg.kwargs)) if quant_cfg else None for quant_cfg in [weight_quant_cfg, act_quant_cfg, bias_quant_cfg, in_quant_cfg, out_quant_cfg]]
 
-        quant_net = modules_to_qmodules(net, weight_quant, act_quant, bias_quant, skip_modules).train()
-
-        quant_net_modules = []
+        self.quant_net = modules_to_qmodules(net, weight_quant, act_quant, bias_quant, skip_modules).train()
 
         if in_quant is not None:
-            quant_net_modules.append(qnn.QuantIdentity(act_quant=in_quant, return_quant_tensor=True))
-
-        quant_net_modules.append(quant_net)
+            self.in_quant = qnn.QuantIdentity(act_quant=in_quant, return_quant_tensor=True)
 
         if out_quant is not None:
-            quant_net_modules.append(qnn.QuantIdentity(act_quant=out_quant, return_quant_tensor=False))
+            self.out_quant = qnn.QuantIdentity(act_quant=out_quant, return_quant_tensor=False)
 
-        super(QuantNet, self).__init__(*quant_net_modules)
+    def forward(self, x):
+        if hasattr(self, 'in_quant'):
+            x = self.in_quant(x)
+
+        x = self.quant_net(x)
+
+        if hasattr(self, 'out_quant'):
+            x = self.out_quant(x)
+
+        return x
 
 
 def create_qat_ready_model(model: nn.Module,
