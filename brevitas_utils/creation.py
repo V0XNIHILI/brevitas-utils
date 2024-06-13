@@ -62,27 +62,21 @@ def load_float_weights(quant_model: nn.Module, float_model: nn.Module):
     return quant_model
 
 
-class PreQuantNet(nn.Module):
-    def __init__(self, net: nn.Module, remove_dropout_layers: bool = True, fold_batch_norm_layers: bool = True):
-        super(PreQuantNet, self).__init__()
+def prepare_model_for_quant(model: nn.Module, remove_dropout_layers: bool = True, fold_batch_norm_layers: bool = True):
+    eval_net = model.eval()
 
-        eval_net = net.eval()
+    if remove_dropout_layers == True:
+        eval_net = remove_dropout(eval_net)
 
-        if remove_dropout_layers == True:
-            eval_net = remove_dropout(eval_net)
+    # TODO: Support weight-only (float act, bias) and weight+act (float bias) quantization
+    # If bias quant is not provided, also make sure to not return a quant tensor from the activations
 
-        # TODO: Support weight-only (float act, bias) and weight+act (float bias) quantization
-        # If bias quant is not provided, also make sure to not return a quant tensor from the activations
+    folded_net = eval_net
 
-        folded_net = eval_net
+    if fold_batch_norm_layers == True:
+        folded_net = fold_conv_bn(folded_net)
 
-        if fold_batch_norm_layers == True:
-            folded_net = fold_conv_bn(folded_net)
-
-        self.net = folded_net
-
-        # Set forward of PreQuantNet to the forward of the net
-        self.forward = self.net.forward
+    return folded_net
 
 
 class QuantNet(nn.Module):
@@ -150,7 +144,7 @@ def create_qat_ready_model(model: nn.Module,
         skip_modules (List[type[nn.Module]], optional): Torch modules that should not be quantized. Defaults to [].
     """
 
-    folded_net = PreQuantNet(model, remove_dropout_layers, fold_batch_norm_layers)
+    folded_net = prepare_model_for_quant(model, remove_dropout_layers, fold_batch_norm_layers)
     quant_net = QuantNet(folded_net, weight_quant_cfg, act_quant_cfg, bias_quant_cfg, in_quant_cfg, out_quant_cfg, skip_modules)
 
     # Taken from: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Retraining-from-floating-point
