@@ -155,12 +155,7 @@ def create_qat_ready_model(model: nn.Module,
 
     # Taken from: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Retraining-from-floating-point
     if load_float_weights_into_model == True:
-        if isinstance(quant_net, nn.Sequential):
-            quant_model_for_float_loading = quant_net[0] if in_quant_cfg is None else quant_net[1]
-        else:
-            quant_model_for_float_loading = quant_net
-
-        load_float_weights(quant_model_for_float_loading, folded_net)
+        load_float_weights(quant_net.quant_net, folded_net)
 
     if apply_bias_correction == True and calibration_setup == None:
         raise ValueError("Bias correction can only be applied if calibration is also performed.")
