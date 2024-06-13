@@ -97,10 +97,10 @@ class QuantNet(nn.Module):
 
         weight_quant, act_quant, bias_quant, in_quant, out_quant = [create_quant_class(quant_cfg.base_classes, dict(quant_cfg.kwargs)) if quant_cfg else None for quant_cfg in [weight_quant_cfg, act_quant_cfg, bias_quant_cfg, in_quant_cfg, out_quant_cfg]]
 
-        self.quant_net = modules_to_qmodules(net, weight_quant, act_quant, bias_quant, skip_modules).train()
-
         if in_quant is not None:
             self.in_quant = qnn.QuantIdentity(act_quant=in_quant, return_quant_tensor=True)
+
+        self.quant_net = modules_to_qmodules(net, weight_quant, act_quant, bias_quant, skip_modules).train()
 
         if out_quant is not None:
             self.out_quant = qnn.QuantIdentity(act_quant=out_quant, return_quant_tensor=False)
