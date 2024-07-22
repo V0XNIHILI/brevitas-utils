@@ -138,7 +138,7 @@ def create_qat_ready_model(model: nn.Module,
         load_float_weights_into_model (bool, optional): Whether or not to reuse the weights from the floating point model. Defaults to True.
         remove_dropout_layers (bool, optional): Whether or not to remove dropout layers. Defaults to True.
         fold_batch_norm_layers (bool, optional): Whether or not to fold batch norm layers. Defaults to True.
-        calibration_setup (Optional[Tuple[DataLoader, torch.device, OptionalBatchTransform]], optional): Dataloader, device and batch transform to be use for calibration before training. See [here](https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Calibration-based-post-training-quantization) for more information. Defaults to None.
+        calibration_setup (Optional[Tuple[DataLoader, torch.device, OptionalBatchTransform, Optional[int]]], optional): Dataloader, device, batch transform and max calibration batches to be used for calibration before training. See [here](https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Calibration-based-post-training-quantization) for more information. Defaults to None.
         apply_bias_correction (bool, optional): Whether or not to apply bias correction. Defaults to False.
         apply_norm_correction (bool, optional): Whether or not to apply norm correction. Defaults to False.
         skip_modules (List[type[nn.Module]], optional): Torch modules that should not be quantized. Defaults to [].
@@ -155,12 +155,13 @@ def create_qat_ready_model(model: nn.Module,
         raise ValueError("Bias correction can only be applied if calibration is also performed.")
 
     if calibration_setup != None:
-        calibration_loader, device, batch_transform = calibration_setup
+        calibration_loader, device, batch_transform, max_calibration_batches = calibration_setup
 
         quant_net = calibrate_model(quant_net.to(device),
                                       calibration_loader,
                                       device,
                                       batch_transform,
+                                      max_calibration_batches,
                                       apply_bias_correction,
                                       apply_norm_correction)
 
