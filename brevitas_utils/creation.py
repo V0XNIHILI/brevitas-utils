@@ -120,7 +120,7 @@ def create_qat_ready_model(model: nn.Module,
                            load_float_weights_into_model: bool = True,
                            remove_dropout_layers: bool = True,
                            fold_batch_norm_layers: bool = True,
-                           calibration_setup: Optional[Tuple[DataLoader, torch.device, OptionalBatchTransform]] = None,
+                           calibration_setup: Optional[Tuple[DataLoader, torch.device, OptionalBatchTransform, Optional[int]]] = None,
                            apply_bias_correction: bool = False,
                            apply_norm_correction: bool = False,
                            skip_modules: List[type[nn.Module]] = []):

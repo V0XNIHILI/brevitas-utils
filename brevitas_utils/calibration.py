@@ -30,7 +30,7 @@ def nested_tuple_to_device(item: NestedTupleOfTensors, device: torch.device, non
 
 
 def forward_all(quant_model: nn.Module, calibration_loader: DataLoader, device: torch.device, batch_transform: OptionalBatchTransform = None, max_calibration_batches: Optional[int] = None, desc: Optional[str] = None):
-    for i, (X, _) in tqdm(enumerate(calibration_loader), desc=desc, total=max_calibration_batches):
+    for i, (X, _) in tqdm(enumerate(calibration_loader), desc=desc, total=len(calibration_loader) if max_calibration_batches is None else max_calibration_batches):
         X = nested_tuple_to_device(X, device)
         if batch_transform is not None:
             X = batch_transform(X)
