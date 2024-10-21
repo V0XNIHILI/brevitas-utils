@@ -9,6 +9,7 @@ Library with utilities for [Brevitas](https://github.com/Xilinx/brevitas/).
   - Automatic removal of dropout layers
 - 1-line extraction of quantized weights and biases from a QAT model
 - Power-of-two weight quantization ([`Int8WeightPerTensorPowerOfTwo.py`](brevitas_utils/custom_quantizers/Int8WeightPerTensorPowerOfTwo.py))
+- Allowing `QuantTensor`s to be sliced
 
 ## Installation
 
@@ -39,14 +40,14 @@ model = nn.Sequential(
 See [here](https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Inheriting-from-a-quantizer) for more details.
 
 ```python
-from brevitas_utils import QuantConfig
+from brevitas_utils import create_quantizer
 
-weight_quant_cfg = QuantConfig(base_classes=["Int8WeightPerTensorPowerOfTwo"], kwargs={"bit_width": 4, "narrow_range": False})
-act_quant_cfg = QuantConfig(base_classes=["ShiftedParamFromPercentileUintQuant"], kwargs={"bit_width": 4, "collect_stats_steps": 1500})
+weight_quant = create_quantizer(base_classes=["Int8WeightPerTensorPowerOfTwo"], kwargs={"bit_width": 4, "narrow_range": False})
+act_quant = create_quantizer(base_classes=["ShiftedParamFromPercentileUintQuant"], kwargs={"bit_width": 4, "collect_stats_steps": 1500})
 
 # Optional parameters for quantization
 
-bias_quant_cfg = QuantConfig(base_classes= ["Int16Bias"])
+bias_quant = create_quantizer(base_classes= ["Int16Bias"])
 # Do not reuse weights from the floating point model
 from_float_weights = False
 # Do not calibrate the model, calibration is necessary for PTQ (via: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Calibration-based-post-training-quantization)
@@ -62,17 +63,18 @@ Note: `create_qat_ready_model` applies PTQ to the model if `calibration_setup` i
 ```python
 from brevitas_utils import create_qat_ready_model
 
-qat_ready_model = create_qat_ready_model(model,
-                                         weight_quant_cfg,
-                                         act_quant_cfg,
-                                         bias_quant_cfg,
-                                         load_float_weights_into_model=from_float_weights,
-                                         calibration_setup=calibration_setup,
-                                         skip_modules=skip_modules)
+qat_ready_model = create_qat_ready_model(
+  model,
+  weight_quant,
+  act_quant,
+  bias_quant,
+  load_float_weights_into_model=from_float_weights,
+  calibration_setup=calibration_setup,
+  skip_modules=skip_modules
+)
 ```
 
 ### 4. Training (or not)
-
 
 #### 4.1. Continue training/finetuning the model via QAT
 
@@ -103,6 +105,16 @@ quant_state_dict_loaded = torch.load("quant_model.pth")
 from brevitas_utils import save_quant_state_dict, load_quant_state_dict 
 save_quant_state_dict(quant_state_dict, "quant_model.pkl")
 quant_state_dict_loaded = load_quant_state_dict("quant_model.pkl")
+```
+
+### 6. Extras
+
+Allow for slicing of `QuantTensor`s, which is currently not possible since their base class is a `NamedTuple`:
+
+```python
+from brevitas_utils import allow_slicing
+
+allow_slicing()
 ```
 
 ## License

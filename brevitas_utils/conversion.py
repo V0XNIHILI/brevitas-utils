@@ -32,13 +32,16 @@ def modules_to_qmodules(model: nn.Module,
                         weight_quant: ExtendedInjector,
                         act_quant: Optional[ExtendedInjector] = None,
                         bias_quant: Optional[ExtendedInjector] = None,
-                        skip_modules: List[type[nn.Module]] = [],
+                        skip_modules: Optional[List[type[nn.Module]]] = None,
                         inplace=False):
     if not inplace:
         model = copy.deepcopy(model)
 
     for name, module in model.named_modules():
-        if isinstance(module, tuple(skip_modules)) or isinstance(module, nn.Identity) or isinstance(module, nn.Sequential):
+        if skip_modules != None and isinstance(module, tuple(skip_modules)):
+            continue
+        
+        if isinstance(module, nn.Identity) or isinstance(module, nn.Sequential):
             continue
 
         # If the module is just some container module

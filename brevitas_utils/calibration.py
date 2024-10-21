@@ -5,6 +5,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from brevitas.graph.calibrate import bias_correction_mode, calibration_mode, norm_correction_mode
+from brevitas_examples.llm.llm_quant.prepare_for_quantize import add_zero_bias_to_linear
 
 from tqdm import tqdm
 
@@ -50,6 +51,9 @@ def calibrate_model(quant_model: nn.Module,
                     apply_bias_correction: bool = False,
                     apply_norm_correction: bool = False) -> nn.Module:
     # Based on (but modified): https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Calibration-based-post-training-quantization
+
+    if apply_bias_correction:
+        quant_model = add_zero_bias_to_linear(quant_model)
 
     # Put the model in calibration mode to collect statistics
     # Quantization is automatically disabled
