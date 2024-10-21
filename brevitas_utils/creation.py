@@ -8,7 +8,6 @@ from torch.utils.data import DataLoader
 
 import brevitas.nn as qnn
 from brevitas import config
-from brevitas.inject import ExtendedInjector
 from brevitas.nn.mixin.parameter import WeightQuantType, BiasQuantType
 from brevitas.nn.mixin.act import ActQuantType
 

@@ -5,7 +5,8 @@ from typing import List, Optional
 import torch.nn as nn
 
 import brevitas.nn as qnn
-from brevitas.inject import ExtendedInjector
+from brevitas.nn.mixin.parameter import WeightQuantType, BiasQuantType
+from brevitas.nn.mixin.act import ActQuantType
 
 from .layer_editing_utils import replace_node_module
 
@@ -29,19 +30,16 @@ def linear_to_qlinear(linear: nn.Linear, **kwargs):
 
 
 def modules_to_qmodules(model: nn.Module,
-                        weight_quant: ExtendedInjector,
-                        act_quant: Optional[ExtendedInjector] = None,
-                        bias_quant: Optional[ExtendedInjector] = None,
+                        weight_quant: WeightQuantType,
+                        act_quant: Optional[ActQuantType] = None,
+                        bias_quant: Optional[BiasQuantType] = None,
                         skip_modules: Optional[List[type[nn.Module]]] = None,
                         inplace=False):
     if not inplace:
         model = copy.deepcopy(model)
 
     for name, module in model.named_modules():
-        if skip_modules != None and isinstance(module, tuple(skip_modules)):
-            continue
-        
-        if isinstance(module, nn.Identity) or isinstance(module, nn.Sequential):
+        if (skip_modules != None and isinstance(module, tuple(skip_modules))) or isinstance(module, nn.Identity) or isinstance(module, nn.Sequential):
             continue
 
         # If the module is just some container module

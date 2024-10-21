@@ -4,8 +4,13 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
+import brevitas
 from brevitas.graph.calibrate import bias_correction_mode, calibration_mode, norm_correction_mode
-from brevitas_examples.llm.llm_quant.prepare_for_quantize import add_zero_bias_to_linear
+
+if int(brevitas.__version__.split('.')[1]) >= 11:
+    from brevitas_examples.llm.llm_quant.prepare_for_quantize import add_zero_bias_to_linear
+else:
+    add_zero_bias_to_linear = lambda x: x
 
 from tqdm import tqdm
 
