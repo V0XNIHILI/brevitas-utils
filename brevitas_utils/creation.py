@@ -107,11 +107,11 @@ class QuantNet(nn.Module):
 
 
 def create_qat_ready_model(model: nn.Module,
-                           weight_quant_cfg: Optional[WeightQuantType] = None,
-                           act_quant_cfg: Optional[ActQuantType] = None,
-                           bias_quant_cfg: Optional[BiasQuantType] = None,
-                           in_quant_cfg: Optional[ActQuantType] = None,
-                           out_quant_cfg: Optional[ActQuantType] = None,
+                           weight_quant: Optional[WeightQuantType] = None,
+                           act_quant: Optional[ActQuantType] = None,
+                           bias_quant: Optional[BiasQuantType] = None,
+                           in_quant: Optional[ActQuantType] = None,
+                           out_quant: Optional[ActQuantType] = None,
                            load_float_weights_into_model: bool = True,
                            remove_dropout_layers: bool = True,
                            fold_batch_norm_layers: bool = True,
@@ -140,7 +140,7 @@ def create_qat_ready_model(model: nn.Module,
     """
 
     folded_net = prepare_model_for_quant(model, remove_dropout_layers, fold_batch_norm_layers)
-    quant_net = QuantNet(folded_net, weight_quant_cfg, act_quant_cfg, bias_quant_cfg, in_quant_cfg, out_quant_cfg, skip_modules)
+    quant_net = QuantNet(folded_net, weight_quant, act_quant, bias_quant, in_quant, out_quant, skip_modules)
 
     # Taken from: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Retraining-from-floating-point
     if load_float_weights_into_model == True:
