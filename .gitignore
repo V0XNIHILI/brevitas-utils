@@ -10,6 +10,10 @@ venv
 
 .DS_Store
 
+# Development
+
+.vscode
+
 # Testing
 
 .pytest_cache/
