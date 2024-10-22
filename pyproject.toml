@@ -1,6 +1,6 @@
 [project]
 name = "brevitas-utils"
-version = "0.0.1"
+version = "0.0.11"
 authors = [
   { name="Douwe den Blanken" },
 ]
@@ -15,12 +15,12 @@ classifiers = [
 keywords = ["machine learning", "ml", "ai", "pytorch", "python", "quantization", "brevitas"]
 dependencies = [
   'torch>2.0.0',
-  'brevitas==0.10.2'
+  'brevitas>=0.10.2'
 ]
 
 [project.optional-dependencies]
 dev = [
-    'pytest'
+  'pytest'
 ]
 
 [build-system]
