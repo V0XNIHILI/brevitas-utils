@@ -8,7 +8,7 @@ from brevitas.quant.shifted_scaled_int import \
     __all__ as shifted_scaled_int_quant_all
 from brevitas.quant.ternary import __all__ as ternary_quant_all
 
-from .custom_quantizers.Int8WeightPerTensorPowerOfTwo import \
+from .custom_quantizers.int8_weight_per_tensor_pot import \
     Int8WeightPerTensorPowerOfTwo
 
 # Create a dict with key = module name and value = list of classes in the module

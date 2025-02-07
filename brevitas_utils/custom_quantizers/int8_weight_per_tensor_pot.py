@@ -40,8 +40,8 @@ def clamped_quantize_power_of_two(input: torch.Tensor, bit_width: int):
 
 
 class ClampedQuantizePowerOfTwo(torch.autograd.Function):
-    """Clamp all inputs between -1 and 1 and to the closest power of two
-    """
+    """Clamp all inputs between -2**(2**(bit_width-1)-1)) and 2**(2**(bit_width-1)-1))
+    and to the closest power of two"""
 
     @staticmethod
     def forward(_, input: torch.Tensor, bit_width: int):
@@ -99,20 +99,36 @@ class ClampedPoTQuantizer(brevitas.jit.ScriptModule):
         if self.observer_only:
             y = x
         else:
+            # int_threshold = self.int_scaling_impl(bit_width)
+            # scale = self.scaling_impl(x, int_threshold)
+
             scale = self.scaling_impl(x) / self.int_scaling_impl(self.brevitas_bit_width)
             zero_point = self.zero_point_impl(x, scale, self.brevitas_bit_width)
 
-            y = potquant(x / scale, int(self.bit_width)) * scale
+            y_int = potquant(x / scale + zero_point, int(self.bit_width))
+            y = (y_int - zero_point) * scale
             y = self.delay_wrapper(x, y)
 
         return y, scale, zero_point, self.brevitas_bit_width
 
+    # def __init__(
+    #         self,
+    #         int_quant: Module,
+    #         scaling_impl: Module,
+    #         int_scaling_impl: Module,
+    #         zero_point_impl: Module,
+    #         bit_width_impl: Module):
+    #     super(RescalingIntQuant, self).__init__()
+    #     self.int_quant = int_quant
+    #     self.scaling_impl = scaling_impl
+    #     self.int_scaling_impl = int_scaling_impl
+    #     self.zero_point_impl = zero_point_impl
+    #     self.msb_clamp_bit_width_impl = bit_width_impl
 
-class ClampedPoTWeightQuantizer(Int8WeightPerTensorFixedPoint):
-    tensor_quant = ClampedPoTQuantizer
 
 
-class Int8WeightPerTensorPowerOfTwo(ClampedPoTWeightQuantizer):
+class Int8WeightPerTensorPowerOfTwo(Int8WeightPerTensorFixedPoint):
     bit_width = 8
     narrow_range = False
+    tensor_quant = ClampedPoTQuantizer
     proxy_class = WeightQuantProxyFromInjector
