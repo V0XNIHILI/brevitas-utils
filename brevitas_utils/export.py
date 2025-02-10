@@ -6,10 +6,10 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 
-import brevitas.nn as qnn
-
 
 def is_supported_weight_layer(module: nn.Module):
+    import brevitas.nn as qnn
+
     return isinstance(module, qnn.QuantConv1d) or isinstance(module, qnn.QuantConv2d) or isinstance(module, qnn.QuantLinear)
 
 

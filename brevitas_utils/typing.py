@@ -1,7 +1,8 @@
-from typing import Tuple, Union, Optional, Callable
+from typing import Tuple, Union, Callable, Optional
 
 import torch
 
-OptionalBatchTransform = Union[Callable[[torch.Tensor], torch.Tensor], None]
+
+OptionalBatchTransform = Optional[Callable[[torch.Tensor], torch.Tensor]]
 TupleOfTensors = Tuple[torch.Tensor, ...]
 NestedTupleOfTensors = Union['NestedTupleOfTensors', TupleOfTensors]

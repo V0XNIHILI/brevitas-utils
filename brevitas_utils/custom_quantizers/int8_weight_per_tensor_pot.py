@@ -1,6 +1,7 @@
 """Complete approach based on: https://github.com/Xilinx/brevitas/blob/master/notebooks/03_anatomy_of_a_quantizer.ipynb
 """
 from typing import Tuple
+import platform
 
 import torch
 from torch import Tensor
@@ -20,7 +21,6 @@ class FakeIntQuant:
         self.input_view_impl = nn.Identity()
 
 
-@torch.jit.script
 def clamped_quantize_power_of_two(input: torch.Tensor, bit_width: int):
     sign = input.sign()
     input_abs = input.abs()
@@ -37,6 +37,11 @@ def clamped_quantize_power_of_two(input: torch.Tensor, bit_width: int):
     zero_corrected_sign = (sign + 1.0).sign() * 2.0 - 1.0
     
     return torch.exp2(clamped_rounded_log2_values) * zero_corrected_sign
+
+# Optionally apply the decorator, do not apply it on the aarch64 architecture because it
+# leads to "Illegal instruction (core dumped)"
+if platform.processor() != 'aarch64':
+    clamped_quantize_power_of_two = torch.jit.script(clamped_quantize_power_of_two)
 
 
 class ClampedQuantizePowerOfTwo(torch.autograd.Function):
