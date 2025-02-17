@@ -122,13 +122,15 @@ def create_qat_ready_model(model: nn.Module,
 
     For more details on how a custom quantizer is created, see:  (see for more details: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Inheriting-from-a-quantizer
 
+    Note that if calibration is performed, the value of collect_stats_steps will be ignored.
+
     Args:
         model (nn.Module): Model to quantize.
-        weight_quant (WeightQuantType, optional): Weight quantizater. Defaults to None.
-        act_quant (ActQuantType, optional): Activation quantizater. Defaults to None.
-        bias_quant (BiasQuantType, optional): Bias quantizater. Defaults to None.
-        in_quant (ActQuantType, optional): Input quantizater. Defaults to None.
-        out_quant (ActQuantType, optional): Output quantizater. Defaults to None.
+        weight_quant (WeightQuantType, optional): Weight quantizer. Defaults to None.
+        act_quant (ActQuantType, optional): Activation quantizer. Defaults to None.
+        bias_quant (BiasQuantType, optional): Bias quantizer. Defaults to None.
+        in_quant (ActQuantType, optional): Input quantizer. Defaults to None.
+        out_quant (ActQuantType, optional): Output quantizer. Defaults to None.
         load_float_weights_into_model (bool, optional): Whether or not to reuse the weights from the floating point model. Defaults to True.
         remove_dropout_layers (bool, optional): Whether or not to remove dropout layers. Defaults to True.
         fold_batch_norm_layers (bool, optional): Whether or not to fold batch norm layers. Defaults to True.
