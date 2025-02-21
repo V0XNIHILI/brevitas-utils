@@ -29,6 +29,3 @@ def test_potquant_clamp():
     outputs = potquant(inputs, 8)
 
     assert torch.max(torch.abs(outputs)) <= 1.0, f"Clamping does not work"
-
-
-test_potquant_values()
