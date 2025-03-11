@@ -21,9 +21,9 @@ pip install -e .
 
 ## Usage
 
-Please see a mini-tutorial below.
+Please see a small tutorial below.
 
-### 1. Define original model
+### 1. Define model to be quantized
 
 ```python
 import torch.nn as nn
@@ -41,6 +41,8 @@ See [here](https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Inheritin
 
 ```python
 from brevitas_utils import create_quantizer
+
+# Mandatory parameters for quantization
 
 weight_quant = create_quantizer(base_classes=["Int8WeightPerTensorPowerOfTwo"], kwargs={"bit_width": 4, "narrow_range": False})
 act_quant = create_quantizer(base_classes=["ShiftedParamFromPercentileUintQuant"], kwargs={"bit_width": 4, "collect_stats_steps": 1500})
@@ -76,17 +78,22 @@ qat_ready_model = create_qat_ready_model(
 
 ### 4. Training (or not)
 
-#### 4.1. Continue training/finetuning the model via QAT
+#### 4.1 Use PTQ model without further QAT
+
+```python
+# You do not have to do anything else in this case:
+# as long as you specify the calibration_setup, PTQ
+# will be performed automatically in the
+# create_qat_ready_model function.
+```
+
+#### 4.2. Continue training/finetuning the model via QAT
+
+Note: this can also be done after performing a PTQ step.
 
 ```python
 for epoch in range(10):
     ...
-```
-
-#### 4.2 Use PTQ model without further QAT
-
-```python
-# You do not have to do anything else in this case
 ```
 
 ### 5. Export quantized weights and biases
@@ -102,7 +109,8 @@ torch.save(quant_state_dict, "quant_model.pth")
 quant_state_dict_loaded = torch.load("quant_model.pth")
 
 # Or, can use built-in functions
-from brevitas_utils import save_quant_state_dict, load_quant_state_dict 
+from brevitas_utils import save_quant_state_dict, load_quant_state_dict
+
 save_quant_state_dict(quant_state_dict, "quant_model.pkl")
 quant_state_dict_loaded = load_quant_state_dict("quant_model.pkl")
 ```
