@@ -35,20 +35,20 @@ def linear_to_qlinear(linear: nn.Linear, kwargs: Dict):
 
 
 def adapt2davgpool2d_to_qavgpool2d(pool: nn.AdaptiveAvgPool2d, kwargs: Dict):
-    return qnn.TruncAdaptiveAvgPool2d(pool.output_size, return_quant_tensor=True, **kwargs)
+    return qnn.TruncAdaptiveAvgPool2d(pool.output_size, **kwargs)
 
 
 base_qmodule_mapping: CustomQModuleMapping = {
     nn.Conv2d: conv2d_to_qconv2d,
     nn.Conv1d: conv1d_to_qconv1d,
-    nn.Linear: linear_to_qlinear,
-    nn.AdaptiveAvgPool2d: adapt2davgpool2d_to_qavgpool2d,
+    nn.Linear: linear_to_qlinear
 }
 
 base_qact_mapping: CustomQModuleMapping = {
     nn.ReLU: lambda _, kwargs: qnn.QuantReLU(**kwargs),
     nn.Hardsigmoid: lambda _, kwargs: QuantHardsigmoid(**kwargs),
-    nn.Hardswish: lambda _, kwargs: QuantHardswish(**kwargs)
+    nn.Hardswish: lambda _, kwargs: QuantHardswish(**kwargs),
+    nn.AdaptiveAvgPool2d: adapt2davgpool2d_to_qavgpool2d
 }
 
 
