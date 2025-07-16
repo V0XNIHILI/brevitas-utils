@@ -11,26 +11,37 @@ from brevitas.nn.mixin.act import ActQuantType
 from .layer_editing_utils import replace_node_module
 
 
-CustomQModuleMapping = Optional[dict[Type[nn.Module], Callable[[nn.Module, Dict], nn.Module]]]
+CustomQModuleMapping = Dict[Type[nn.Module], Callable[[nn.Module, Dict], nn.Module]]
 
 
-def conv2d_to_qconv2d(conv: nn.Conv2d, **kwargs):
+def conv2d_to_qconv2d(conv: nn.Conv2d, kwargs: Dict):
     return qnn.QuantConv2d(conv.in_channels, conv.out_channels,
                            conv.kernel_size, conv.stride, conv.padding,
                            conv.dilation, conv.groups, conv.padding_mode,
                            conv.bias is not None, **kwargs)
 
 
-def conv1d_to_qconv1d(conv: nn.Conv1d, **kwargs):
+def conv1d_to_qconv1d(conv: nn.Conv1d, kwargs: Dict):
     return qnn.QuantConv1d(conv.in_channels, conv.out_channels,
                            conv.kernel_size, conv.stride, conv.padding,
                            conv.dilation, conv.groups, conv.padding_mode,
                            conv.bias is not None, **kwargs)
 
 
-def linear_to_qlinear(linear: nn.Linear, **kwargs):
+def linear_to_qlinear(linear: nn.Linear, kwargs: Dict):
     return qnn.QuantLinear(linear.in_features, linear.out_features, linear.bias
                            is not None, **kwargs)
+
+
+base_qmodule_mapping: CustomQModuleMapping = {
+    nn.Conv2d: conv2d_to_qconv2d,
+    nn.Conv1d: conv1d_to_qconv1d,
+    nn.Linear: linear_to_qlinear
+}
+
+base_qact_mapping: CustomQModuleMapping = {
+    nn.ReLU: lambda _, kwargs: qnn.QuantReLU(**kwargs)
+}
 
 
 def modules_to_qmodules(model: nn.Module,
@@ -38,8 +49,8 @@ def modules_to_qmodules(model: nn.Module,
                         act_quant: Optional[ActQuantType] = None,
                         bias_quant: Optional[BiasQuantType] = None,
                         skip_modules: Optional[List[type[nn.Module]]] = None,
-                        custom_qact_mapping: CustomQModuleMapping = None,
-                        custom_qmodule_mapping: CustomQModuleMapping = None,
+                        custom_qact_mapping: Optional[CustomQModuleMapping] = None,
+                        custom_qmodule_mapping: Optional[CustomQModuleMapping] = None,
                         inplace: bool =False):
     if not inplace:
         model = copy.deepcopy(model)
@@ -57,25 +68,11 @@ def modules_to_qmodules(model: nn.Module,
 
         new_child_module = None
 
-        if isinstance(module, nn.Conv1d):
-            new_child_module = conv1d_to_qconv1d(module,
-                                                 weight_quant=weight_quant,
-                                                 bias_quant=bias_quant)
-        elif isinstance(module, nn.Conv2d):
-            new_child_module = conv2d_to_qconv2d(module,
-                                                 weight_quant=weight_quant,
-                                                 bias_quant=bias_quant)
-        elif isinstance(module, nn.Linear):
-            new_child_module = linear_to_qlinear(module,
-                                                 weight_quant=weight_quant,
-                                                 bias_quant=bias_quant)
-        elif isinstance(module, nn.ReLU):
+        # Give priority to custom mappings if provided
+        if custom_qact_mapping is not None and type(module) in custom_qact_mapping:
             if act_quant is None:
                 continue
 
-            new_child_module = qnn.QuantReLU(act_quant=act_quant,
-                                             return_quant_tensor=True)
-        elif custom_qact_mapping is not None and type(module) in custom_qact_mapping:
             new_child_module = custom_qact_mapping[type(module)](module, {
                 'act_quant': act_quant,
                 "return_quant_tensor": True
@@ -84,6 +81,19 @@ def modules_to_qmodules(model: nn.Module,
             new_child_module = custom_qmodule_mapping[type(module)](module, {
                 'weight_quant': weight_quant,
                 'bias_quant': bias_quant
+            })
+        elif type(module) in base_qmodule_mapping:
+            new_child_module = base_qmodule_mapping[type(module)](module, {
+                'weight_quant': weight_quant,
+                'bias_quant': bias_quant
+            })
+        elif type(module) in base_qact_mapping:
+            if act_quant is None:
+                continue
+
+            new_child_module = base_qact_mapping[type(module)](module, {
+                'act_quant': act_quant,
+                "return_quant_tensor": True
             })
 
         if new_child_module is not None:
