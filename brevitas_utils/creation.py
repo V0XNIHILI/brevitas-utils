@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Tuple, Any
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from torch.fx.experimental.optimization import remove_dropout, fuse as fold_conv_bn
 
 import brevitas.nn as qnn
 from brevitas import config
@@ -12,7 +13,6 @@ from brevitas.nn.mixin.parameter import WeightQuantType, BiasQuantType
 from brevitas.nn.mixin.act import ActQuantType
 
 from .brevitas_class_mapping import get_brevitas_class_by_name
-from .layer_editing_utils import fold_conv_bn, remove_dropout
 from .conversion import modules_to_qmodules
 from .typing import OptionalBatchTransform
 from .calibration import calibrate_model
