@@ -35,7 +35,7 @@ def linear_to_qlinear(linear: nn.Linear, kwargs: Dict):
 
 
 def adapt2davgpool2d_to_qavgpool2d(pool: nn.AdaptiveAvgPool2d, kwargs: Dict):
-    return qnn.TruncAdaptiveAvgPool2d(pool.output_size, **kwargs)
+    return qnn.TruncAdaptiveAvgPool2d(pool.output_size, return_quant_tensor=True, **kwargs)
 
 
 base_qmodule_mapping: CustomQModuleMapping = {
