@@ -19,7 +19,10 @@ from .calibration import calibrate_model
 
 
 # For reference, see: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Inheriting-from-a-quantizer
-def create_quantizer(base_classes: List, kwargs: Dict[str, Any] = None):
+def create_quantizer(base_classes: List[str], kwargs: Dict[str, Any] = None):
+    if not isinstance(base_classes, list):
+        raise TypeError("base_classes must be a list of strings")
+
     base_classes = [get_brevitas_class_by_name(base_class) for base_class in base_classes]
 
     return type('QuantBase', tuple(base_classes), {} if kwargs is None else kwargs)
