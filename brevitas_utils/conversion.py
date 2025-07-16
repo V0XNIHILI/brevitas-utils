@@ -1,6 +1,6 @@
 import copy
 
-from typing import List, Optional
+from typing import List, Optional, Type, Callable, Dict
 
 import torch.nn as nn
 
@@ -9,6 +9,10 @@ from brevitas.nn.mixin.parameter import WeightQuantType, BiasQuantType
 from brevitas.nn.mixin.act import ActQuantType
 
 from .layer_editing_utils import replace_node_module
+
+
+CustomQModuleMapping = Optional[dict[Type[nn.Module], Callable[[nn.Module, Dict], nn.Module]]]
+
 
 def conv2d_to_qconv2d(conv: nn.Conv2d, **kwargs):
     return qnn.QuantConv2d(conv.in_channels, conv.out_channels,
@@ -34,7 +38,9 @@ def modules_to_qmodules(model: nn.Module,
                         act_quant: Optional[ActQuantType] = None,
                         bias_quant: Optional[BiasQuantType] = None,
                         skip_modules: Optional[List[type[nn.Module]]] = None,
-                        inplace=False):
+                        custom_qact_mapping: CustomQModuleMapping = None,
+                        custom_qmodule_mapping: CustomQModuleMapping = None,
+                        inplace: bool =False):
     if not inplace:
         model = copy.deepcopy(model)
 
@@ -69,6 +75,16 @@ def modules_to_qmodules(model: nn.Module,
 
             new_child_module = qnn.QuantReLU(act_quant=act_quant,
                                              return_quant_tensor=True)
+        elif custom_qact_mapping is not None and type(module) in custom_qact_mapping:
+            new_child_module = custom_qact_mapping[type(module)](module, {
+                'act_quant': act_quant,
+                "return_quant_tensor": True
+            })
+        elif custom_qmodule_mapping is not None and type(module) in custom_qmodule_mapping:
+            new_child_module = custom_qmodule_mapping[type(module)](module, {
+                'weight_quant': weight_quant,
+                'bias_quant': bias_quant
+            })
 
         if new_child_module is not None:
             replace_node_module(model, name, new_child_module)
