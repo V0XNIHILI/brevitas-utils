@@ -34,7 +34,7 @@ def linear_to_qlinear(linear: nn.Linear, **kwargs):
 
 
 def modules_to_qmodules(model: nn.Module,
-                        weight_quant: WeightQuantType,
+                        weight_quant: Optional[WeightQuantType] = None,
                         act_quant: Optional[ActQuantType] = None,
                         bias_quant: Optional[BiasQuantType] = None,
                         skip_modules: Optional[List[type[nn.Module]]] = None,
