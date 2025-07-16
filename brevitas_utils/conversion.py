@@ -9,6 +9,7 @@ from brevitas.nn.mixin.parameter import WeightQuantType, BiasQuantType
 from brevitas.nn.mixin.act import ActQuantType
 
 from .layer_editing_utils import replace_node_module
+from .quant_activation import QuantHardsigmoid, QuantHardswish
 
 
 CustomQModuleMapping = Dict[Type[nn.Module], Callable[[nn.Module, Dict], nn.Module]]
@@ -33,14 +34,21 @@ def linear_to_qlinear(linear: nn.Linear, kwargs: Dict):
                            is not None, **kwargs)
 
 
+def adapt2davgpool2d_to_qavgpool2d(pool: nn.AdaptiveAvgPool2d, kwargs: Dict):
+    return qnn.TruncAdaptiveAvgPool2d(pool.output_size, **kwargs)
+
+
 base_qmodule_mapping: CustomQModuleMapping = {
     nn.Conv2d: conv2d_to_qconv2d,
     nn.Conv1d: conv1d_to_qconv1d,
-    nn.Linear: linear_to_qlinear
+    nn.Linear: linear_to_qlinear,
+    nn.AdaptiveAvgPool2d: adapt2davgpool2d_to_qavgpool2d,
 }
 
 base_qact_mapping: CustomQModuleMapping = {
-    nn.ReLU: lambda _, kwargs: qnn.QuantReLU(**kwargs)
+    nn.ReLU: lambda _, kwargs: qnn.QuantReLU(**kwargs),
+    nn.Hardsigmoid: lambda _, kwargs: QuantHardsigmoid(**kwargs),
+    nn.Hardswish: lambda _, kwargs: QuantHardswish(**kwargs)
 }
 
 
@@ -102,3 +110,4 @@ def modules_to_qmodules(model: nn.Module,
             raise NotImplementedError(f"Module '{module.__class__.__name__}' not supported yet.")
 
     return model
+ 
