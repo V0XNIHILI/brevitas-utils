@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Tuple, Any
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from torch.fx.experimental.optimization import remove_dropout, fuse as fold_conv_bn
 
 import brevitas.nn as qnn
 from brevitas import config
@@ -12,14 +13,16 @@ from brevitas.nn.mixin.parameter import WeightQuantType, BiasQuantType
 from brevitas.nn.mixin.act import ActQuantType
 
 from .brevitas_class_mapping import get_brevitas_class_by_name
-from .layer_editing_utils import fold_conv_bn, remove_dropout
 from .conversion import modules_to_qmodules
 from .typing import OptionalBatchTransform
 from .calibration import calibrate_model
 
 
 # For reference, see: https://xilinx.github.io/brevitas/tutorials/tvmcon2021.html#Inheriting-from-a-quantizer
-def create_quantizer(base_classes: List, kwargs: Dict[str, Any] = None):
+def create_quantizer(base_classes: List[str], kwargs: Dict[str, Any] = None):
+    if not isinstance(base_classes, list):
+        raise TypeError("base_classes must be a list of strings")
+
     base_classes = [get_brevitas_class_by_name(base_class) for base_class in base_classes]
 
     return type('QuantBase', tuple(base_classes), {} if kwargs is None else kwargs)

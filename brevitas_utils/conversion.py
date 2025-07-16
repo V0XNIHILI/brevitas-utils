@@ -1,6 +1,6 @@
 import copy
 
-from typing import List, Optional
+from typing import List, Optional, Type, Callable, Dict
 
 import torch.nn as nn
 
@@ -41,12 +41,14 @@ def adapt2davgpool2d_to_qavgpool2d(pool: nn.AdaptiveAvgPool2d, **kwargs):
     return qnn.TruncAdaptiveAvgPool2d(pool.output_size, **kwargs)
 
                 
-def modules_to_qmodules(model: Optional[nn.Module] = None,
+def modules_to_qmodules(model = None,
                         weight_quant: Optional[WeightQuantType]= None,
                         act_quant: Optional[ActQuantType] = None,
                         bias_quant: Optional[BiasQuantType] = None,
                         skip_modules: Optional[List[type[nn.Module]]] = None,
-                        inplace=False):
+                        custom_qact_mapping: CustomQModuleMapping = None,
+                        custom_qmodule_mapping: CustomQModuleMapping = None,
+                        inplace: bool =False):
     if not inplace:
         model = copy.deepcopy(model)
 
