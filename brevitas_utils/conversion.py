@@ -9,6 +9,7 @@ from brevitas.nn.mixin.parameter import WeightQuantType, BiasQuantType
 from brevitas.nn.mixin.act import ActQuantType
 
 from .layer_editing_utils import replace_node_module
+from .quant_activation import QuantBSiLU, QuantHardsigmoid, QuantHardswish
 
 def conv2d_to_qconv2d(conv: nn.Conv2d, **kwargs):
     return qnn.QuantConv2d(conv.in_channels, conv.out_channels,
@@ -28,9 +29,20 @@ def linear_to_qlinear(linear: nn.Linear, **kwargs):
     return qnn.QuantLinear(linear.in_features, linear.out_features, linear.bias
                            is not None, **kwargs)
 
+def act_to_qact(act: nn.Module, **kwargs):
+    act_map = {
+        nn.ReLU: qnn.QuantReLU,
+        nn.Hardsigmoid: QuantHardsigmoid,
+        nn.Hardswish: QuantHardswish
+    }
+    return act_map[act.__class__](**kwargs)
 
-def modules_to_qmodules(model: nn.Module,
-                        weight_quant: WeightQuantType,
+def adapt2davgpool2d_to_qavgpool2d(pool: nn.AdaptiveAvgPool2d, **kwargs):
+    return qnn.TruncAdaptiveAvgPool2d(pool.output_size, **kwargs)
+
+                
+def modules_to_qmodules(model: Optional[nn.Module] = None,
+                        weight_quant: Optional[WeightQuantType]= None,
                         act_quant: Optional[ActQuantType] = None,
                         bias_quant: Optional[BiasQuantType] = None,
                         skip_modules: Optional[List[type[nn.Module]]] = None,
@@ -63,12 +75,16 @@ def modules_to_qmodules(model: nn.Module,
             new_child_module = linear_to_qlinear(module,
                                                  weight_quant=weight_quant,
                                                  bias_quant=bias_quant)
-        elif isinstance(module, nn.ReLU):
+        elif isinstance(module, nn.AdaptiveAvgPool2d):
+            new_child_module = adapt2davgpool2d_to_qavgpool2d(module,
+                                                             trunc_quant = act_quant,
+                                                             return_quant_tensor=True)
+            
+        elif isinstance(module, (nn.ReLU, nn.Hardsigmoid, nn.Hardswish)):
             if act_quant is None:
                 continue
-
-            new_child_module = qnn.QuantReLU(act_quant=act_quant,
-                                             return_quant_tensor=True)
+            
+            new_child_module = act_to_qact(module, act_quant=act_quant, return_quant_tensor=True)
 
         if new_child_module is not None:
             replace_node_module(model, name, new_child_module)
