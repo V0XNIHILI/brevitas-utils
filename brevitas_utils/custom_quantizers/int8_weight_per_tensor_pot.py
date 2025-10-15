@@ -60,6 +60,12 @@ class ClampedQuantizePowerOfTwo(torch.autograd.Function):
 potquant = ClampedQuantizePowerOfTwo.apply
 
 
+# Create small helper class for 32-bit quantization for quantization-aware training with ProtoNets
+class PotQuant32(nn.Module):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return potquant(x.value, 32) # type: ignore[arg-type]
+
+
 class ClampedPoTQuantizer(brevitas.jit.ScriptModule):
 
     def __init__(self,
