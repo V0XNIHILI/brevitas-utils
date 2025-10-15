@@ -48,6 +48,8 @@ base_qact_mapping: CustomQModuleMapping = {
     nn.ReLU: lambda _, kwargs: qnn.QuantReLU(**kwargs),
     nn.Hardsigmoid: lambda _, kwargs: QuantHardsigmoid(**kwargs),
     nn.Hardswish: lambda _, kwargs: QuantHardswish(**kwargs),
+    nn.Hardtanh: lambda module, kwargs: qnn.QuantHardTanh(
+        module.min_val, module.max_val, **kwargs),
     nn.AdaptiveAvgPool2d: adapt2davgpool2d_to_qavgpool2d
 }
 
