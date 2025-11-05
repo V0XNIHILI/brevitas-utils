@@ -3,14 +3,11 @@ from typing import Optional
 
 from torch import nn
 
-from brevitas.inject.defaults import Int8ActPerTensorFloat
 from brevitas.inject.defaults import Int8ActPerTensorFloatMinMaxInit
 from brevitas.inject.defaults import Uint8ActPerTensorFloat
 
-
 from brevitas.nn.quant_layer import ActQuantType
 from brevitas.nn.quant_layer import QuantNonLinearActLayer as QuantNLAL
-
 
 
 class QuantBSiLU(QuantNLAL):
@@ -29,6 +26,8 @@ class QuantBSiLU(QuantNLAL):
             act_quant=act_quant,
             return_quant_tensor=return_quant_tensor,
             **kwargs)
+
+
 class QuantHardsigmoid(QuantNLAL):
     def __init__(
             self,
@@ -44,6 +43,8 @@ class QuantHardsigmoid(QuantNLAL):
             act_quant=act_quant,
             return_quant_tensor=return_quant_tensor,
             **kwargs)
+
+
 class QuantHardswish(QuantNLAL):
     def __init__(
             self,

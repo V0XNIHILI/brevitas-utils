@@ -125,8 +125,8 @@ class ClampedPoTQuantizer(brevitas.jit.ScriptModule):
         return y, scale, zero_point, self.brevitas_bit_width
 
 
-class Int8WeightPerTensorPowerOfTwo(Int8WeightPerTensorFixedPoint):
-    bit_width = 8
+class Int4WeightPerTensorPowerOfTwo(Int8WeightPerTensorFixedPoint):
+    bit_width = 4
     narrow_range = False
     tensor_quant = ClampedPoTQuantizer
     proxy_class = WeightQuantProxyFromInjector
