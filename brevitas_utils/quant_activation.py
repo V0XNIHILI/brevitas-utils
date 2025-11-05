@@ -1,13 +1,26 @@
 
 from typing import Optional
 
+import torch
 from torch import nn
+import torch.nn.functional as F
 
 from brevitas.inject.defaults import Int8ActPerTensorFloatMinMaxInit
 from brevitas.inject.defaults import Uint8ActPerTensorFloat
 
 from brevitas.nn.quant_layer import ActQuantType
 from brevitas.nn.quant_layer import QuantNonLinearActLayer as QuantNLAL
+
+
+class BSiLU(nn.Module):
+    def __init__(self, alpha: float = 1.67):
+        # per: https://arxiv.org/pdf/2505.22074
+        super().__init__()
+        self.alpha = alpha
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # σ(x) = sigmoid(x)
+        return (x + self.alpha) * torch.sigmoid(x) - self.alpha / 2
 
 
 class QuantBSiLU(QuantNLAL):
