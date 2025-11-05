@@ -21,7 +21,7 @@ class FakeIntQuant:
         self.input_view_impl = nn.Identity()
 
 
-def clamped_quantize_power_of_two(input: torch.Tensor, bit_width: int):
+def clamped_quantize_power_of_two(input: torch.Tensor, bit_width: int, floor: bool = False, allow_less_than_one: bool = False):
     sign = input.sign()
     input_abs = input.abs()
 
@@ -30,8 +30,9 @@ def clamped_quantize_power_of_two(input: torch.Tensor, bit_width: int):
 
     input_clamped = input_abs.clamp(min=min, max=max)
 
-    rounded_log2_values = torch.round(torch.log2(input_clamped))
-    clamped_rounded_log2_values = F.relu(rounded_log2_values)
+    log2_values = torch.log2(input_clamped)
+    rounded_floored_log2_values = torch.floor(log2_values) if floor else torch.round(log2_values)
+    clamped_rounded_log2_values = rounded_floored_log2_values if allow_less_than_one else F.relu(rounded_floored_log2_values)
 
     # As sign is 0 or 1, we need to convert it to -1 or 1
     zero_corrected_sign = (sign + 1.0).sign() * 2.0 - 1.0
@@ -49,21 +50,25 @@ class ClampedQuantizePowerOfTwo(torch.autograd.Function):
     and to the closest power of two"""
 
     @staticmethod
-    def forward(_, input: torch.Tensor, bit_width: int):
-        return clamped_quantize_power_of_two(input, bit_width)
+    def forward(_, input: torch.Tensor, bit_width: int, floor: bool = False, allow_less_than_one: bool = False):
+        return clamped_quantize_power_of_two(input, bit_width, floor, allow_less_than_one)
 
     @staticmethod
     def backward(_, grad_output: torch.Tensor):
-        return grad_output, None
+        return grad_output, None, None, None
 
 
 potquant = ClampedQuantizePowerOfTwo.apply
 
 
 # Create small helper class for 32-bit quantization for quantization-aware training with ProtoNets
-class PotQuant32(nn.Module):
+class PotQuant32BFloorFloat(nn.Module):
+    def __init__(self, is_input_quant_tensor: bool = False):
+        super(PotQuant32BFloorFloat, self).__init__()
+        self.is_input_quant_tensor = is_input_quant_tensor
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return potquant(x.value, 32) # type: ignore[arg-type]
+        return potquant(x.value if self.is_input_quant_tensor else x, 32, True, True) # type: ignore[arg-type]
 
 
 class ClampedPoTQuantizer(brevitas.jit.ScriptModule):
@@ -107,35 +112,17 @@ class ClampedPoTQuantizer(brevitas.jit.ScriptModule):
 
     @brevitas.jit.script_method
     def forward(self, x: torch.Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+        scale = self.scaling_impl(x) / self.int_scaling_impl(self.brevitas_bit_width)
+        zero_point = self.zero_point_impl(x, scale, self.brevitas_bit_width)
+
         if self.observer_only:
             y = x
         else:
-            # int_threshold = self.int_scaling_impl(bit_width)
-            # scale = self.scaling_impl(x, int_threshold)
-
-            scale = self.scaling_impl(x) / self.int_scaling_impl(self.brevitas_bit_width)
-            zero_point = self.zero_point_impl(x, scale, self.brevitas_bit_width)
-
             y_int = potquant(x / scale + zero_point, int(self.bit_width))
             y = (y_int - zero_point) * scale
             y = self.delay_wrapper(x, y)
 
         return y, scale, zero_point, self.brevitas_bit_width
-
-    # def __init__(
-    #         self,
-    #         int_quant: Module,
-    #         scaling_impl: Module,
-    #         int_scaling_impl: Module,
-    #         zero_point_impl: Module,
-    #         bit_width_impl: Module):
-    #     super(RescalingIntQuant, self).__init__()
-    #     self.int_quant = int_quant
-    #     self.scaling_impl = scaling_impl
-    #     self.int_scaling_impl = int_scaling_impl
-    #     self.zero_point_impl = zero_point_impl
-    #     self.msb_clamp_bit_width_impl = bit_width_impl
-
 
 
 class Int8WeightPerTensorPowerOfTwo(Int8WeightPerTensorFixedPoint):
