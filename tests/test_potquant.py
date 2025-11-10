@@ -5,7 +5,7 @@ from brevitas_utils.custom_quantizers.pot4_weight_per_tensor_fixed_point import 
 
 def test_potquant_values():
     for bit_width in range(4, 5):
-        inputs = torch.tensor(range(0, 2**(2**(bit_width-1)-1))).float()
+        inputs = 2**torch.tensor(range(0, 2**(bit_width-1))).float()
 
         inputs = torch.cat([inputs, -inputs])
 
@@ -24,8 +24,8 @@ def test_potquant_values():
 
 
 def test_potquant_clamp():
-    inputs = torch.tensor([2.0, -2.0])
+    inputs = torch.tensor([256.0, -256.0])
 
-    outputs = potquant(inputs, 8)
+    outputs = potquant(inputs, 4)
 
-    assert torch.max(torch.abs(outputs)) <= 1.0, f"Clamping does not work"
+    assert torch.max(torch.abs(outputs)) <= 128.0, f"Clamping does not work"
