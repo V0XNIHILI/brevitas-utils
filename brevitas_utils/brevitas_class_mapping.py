@@ -8,8 +8,8 @@ from brevitas.quant.shifted_scaled_int import \
     __all__ as shifted_scaled_int_quant_all
 from brevitas.quant.ternary import __all__ as ternary_quant_all
 
-from .custom_quantizers.int4_weight_per_tensor_pot import \
-    Int4WeightPerTensorPowerOfTwo
+from .custom_quantizers.pot4_weight_per_tensor_fixed_point import \
+    PoT4WeightPerTensorFixedPoint
 
 # Create a dict with key = module name and value = list of classes in the module
 quant_classes = {
@@ -24,7 +24,7 @@ quant_classes = {
 }
 
 custom_quant_classes = {
-    'Int4WeightPerTensorPowerOfTwo': Int4WeightPerTensorPowerOfTwo
+    'PoT4WeightPerTensorFixedPoint': PoT4WeightPerTensorFixedPoint
 }
 
 

@@ -1,6 +1,6 @@
 import torch
 
-from brevitas_utils.custom_quantizers.int4_weight_per_tensor_pot import potquant
+from brevitas_utils.custom_quantizers.pot4_weight_per_tensor_fixed_point import potquant
 
 
 def test_potquant_values():

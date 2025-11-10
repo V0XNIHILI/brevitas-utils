@@ -8,7 +8,7 @@ Library with utilities for [Brevitas](https://github.com/Xilinx/brevitas/).
   - Automatic batch normalization folding
   - Automatic removal of dropout layers
 - 1-line extraction of quantized weights and biases from a QAT model
-- Power-of-two weight quantization ([`Int4WeightPerTensorPowerOfTwo`](brevitas_utils/custom_quantizers/int4_weight_per_tensor_pot.py))
+- Power-of-two weight quantization ([`PoT4WeightPerTensorFixedPoint`](brevitas_utils/custom_quantizers/pot4_weight_per_tensor_fixed_point.py))
 - Allowing `QuantTensor`s to be sliced
 
 ## Installation
@@ -44,7 +44,7 @@ from brevitas_utils import create_quantizer
 
 # Mandatory parameters for quantization
 
-weight_quant = create_quantizer(base_classes=["Int4WeightPerTensorPowerOfTwo"], kwargs={"bit_width": 3, "narrow_range": False})
+weight_quant = create_quantizer(base_classes=["PoT4WeightPerTensorFixedPoint"], kwargs={"bit_width": 3, "narrow_range": False})
 act_quant = create_quantizer(base_classes=["ShiftedParamFromPercentileUintQuant"], kwargs={"bit_width": 4, "collect_stats_steps": 1500})
 
 # Optional parameters for quantization
