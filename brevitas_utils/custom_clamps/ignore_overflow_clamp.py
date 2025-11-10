@@ -82,7 +82,7 @@ class IgnoreOverflowClamp(brevitas.jit.ScriptModule):
     def __init__(self, gradient_outside_range: float = 1.0):
         super(IgnoreOverflowClamp, self).__init__()
 
-        assert gradient_outside_range <= 1.0, "Only gradient_outside_range <= 1.0 is supported."
+        assert gradient_outside_range in (0.0, 1.0) or gradient_outside_range < 0.0, "gradient_outside_range can only be 0.0, 1.0 or smaller than 0."
 
         self.gradient_outside_range = gradient_outside_range
 
