@@ -34,6 +34,18 @@ def linear_to_qlinear(linear: nn.Linear, kwargs: Dict):
                            is not None, **kwargs)
 
 
+def embedding_to_qembedding(embedding: nn.Embedding, kwargs: Dict):
+    return qnn.QuantEmbedding(embedding.num_embeddings,
+                              embedding.embedding_dim,
+                              embedding.padding_idx,
+                              embedding.max_norm,
+                              embedding.norm_type,
+                              embedding.scale_grad_by_freq,
+                              embedding.sparse,
+                              embedding.weight,
+                              **kwargs)
+
+
 def adapt2davgpool2d_to_qavgpool2d(pool: nn.AdaptiveAvgPool2d, kwargs: Dict):
     return qnn.TruncAdaptiveAvgPool2d(pool.output_size, **kwargs)
 
@@ -41,7 +53,8 @@ def adapt2davgpool2d_to_qavgpool2d(pool: nn.AdaptiveAvgPool2d, kwargs: Dict):
 base_qmodule_mapping: CustomQModuleMapping = {
     nn.Conv2d: conv2d_to_qconv2d,
     nn.Conv1d: conv1d_to_qconv1d,
-    nn.Linear: linear_to_qlinear
+    nn.Linear: linear_to_qlinear,
+    nn.Embedding: embedding_to_qembedding
 }
 
 base_qact_mapping: CustomQModuleMapping = {
@@ -61,12 +74,12 @@ def modules_to_qmodules(model: nn.Module,
                         skip_modules: Optional[List[type[nn.Module]]] = None,
                         custom_qact_mapping: Optional[CustomQModuleMapping] = None,
                         custom_qmodule_mapping: Optional[CustomQModuleMapping] = None,
-                        inplace: bool =False):
+                        inplace: bool = False):
     if not inplace:
         model = copy.deepcopy(model)
 
     for name, module in model.named_modules():
-        if (skip_modules != None and isinstance(module, tuple(skip_modules))) or isinstance(module, nn.Identity) or isinstance(module, nn.Sequential):
+        if (skip_modules != None and isinstance(module, tuple(skip_modules))) or isinstance(module, (nn.Identity, nn.Sequential, nn.Flatten)):
             continue
 
         # If the module is just some container module
