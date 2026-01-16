@@ -1,4 +1,5 @@
 import copy
+import warnings
 
 from typing import List, Optional, Type, Callable, Dict
 
@@ -84,6 +85,10 @@ def modules_to_qmodules(model: nn.Module,
 
         # If the module is just some container module
         if name == "":
+            continue
+
+        if ".act_quant" in name or ".weight_quant" in name or ".bias_quant" in name or ".output_quant" in name or ".input_quant" in name:
+            warnings.warn(f"Module '{name}' already seems to be quantized. Skipping conversion.")
             continue
 
         if module.__class__.__name__ == "Module":
