@@ -10,6 +10,7 @@ from brevitas.quant.ternary import __all__ as ternary_quant_all
 
 from .custom_quantizers.pot4_weight_per_tensor_fixed_point import \
     PoT4WeightPerTensorFixedPoint
+from .custom_quantizers.zero_zero_point_act import ZeroZeroPointAct
 
 # Create a dict with key = module name and value = list of classes in the module
 quant_classes = {
@@ -24,7 +25,8 @@ quant_classes = {
 }
 
 custom_quant_classes = {
-    'PoT4WeightPerTensorFixedPoint': PoT4WeightPerTensorFixedPoint
+    'PoT4WeightPerTensorFixedPoint': PoT4WeightPerTensorFixedPoint,
+    'ZeroZeroPointAct': ZeroZeroPointAct
 }
 
 
