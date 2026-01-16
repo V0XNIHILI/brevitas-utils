@@ -6,6 +6,8 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 
+from brevitas.quant_tensor import QuantTensor
+
 
 def is_supported_weight_layer(module: nn.Module):
     import brevitas.nn as qnn
@@ -41,12 +43,12 @@ def load_quant_state_dict(path: Union[str, Path]):
     return quant_state_dict
 
 
-def get_quant_state_dict(quant_model: nn.Module, input_shape: tuple, as_numpy: bool = False):
+def get_quant_state_dict(quant_model: nn.Module, input_shape_or_quant_tensor: Union[tuple[int, ...], QuantTensor], as_numpy: bool = False):
     """Retrieves the quantized state dictionary of a quantized model.
 
     Args:
         quant_model (nn.Module): The quantized model.
-        input_shape (tuple): The shape of the input tensor.
+        input_shape_or_quant_tensor (Union[tuple, QuantTensor]): The shape of the input tensor or a QuantTensor to be used for a forward pass.
         as_numpy (bool, optional): If True, converts the quantized parameters from Torch tensors to Numpy arrays. Defaults to False.
 
     Returns:
@@ -61,7 +63,12 @@ def get_quant_state_dict(quant_model: nn.Module, input_shape: tuple, as_numpy: b
         if is_supported_weight_layer(module):
             module.cache_inference_quant_bias = True
 
-    quant_model.cpu()(torch.randn(*input_shape))
+    if isinstance(input_shape_or_quant_tensor, QuantTensor):
+        input_tensor = input_shape_or_quant_tensor
+    else:
+        input_tensor = torch.randn(*input_shape_or_quant_tensor)
+
+    quant_model.cpu()(input_tensor)
 
     quant_state_dict = {}
 
