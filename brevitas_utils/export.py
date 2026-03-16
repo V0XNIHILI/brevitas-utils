@@ -12,7 +12,13 @@ from brevitas.quant_tensor import QuantTensor
 def is_supported_weight_layer(module: nn.Module):
     import brevitas.nn as qnn
 
-    return isinstance(module, qnn.QuantConv1d) or isinstance(module, qnn.QuantConv2d) or isinstance(module, qnn.QuantLinear)
+    return isinstance(module, qnn.QuantConv1d) or isinstance(module, qnn.QuantConv2d) or isinstance(module, qnn.QuantLinear) # or isinstance(module, qnn.QuantLSTM)
+
+
+def is_gate_params(module: nn.Module):
+    import brevitas.nn.quant_rnn as qnnr
+
+    return isinstance(module, qnnr.GateParams)
 
 
 def save_quant_state_dict(quant_state_dict: OrderedDict, path: str):
@@ -43,6 +49,44 @@ def load_quant_state_dict(path: Union[str, Path]):
     return quant_state_dict
 
 
+def store_quant_tensor(quant_tensor_full: QuantTensor, param_type: str, quant_state_dict: dict, name: str, as_numpy: bool):
+    """Stores the quantized tensor and its quantization parameters in the quantization state dictionary.
+
+    Args:
+        quant_tensor_full (QuantTensor): The full quantized tensor containing the quantized values and quantization parameters.
+        param_type (str): The type of the parameter (e.g., 'weight' or 'bias').
+        quant_state_dict (dict): The quantization state dictionary to store the quantized tensor and its parameters.
+        name (str): The name of the module to which the quantized tensor belongs.
+        as_numpy (bool): If True, converts the quantized tensor and its parameters from Torch tensors to Numpy arrays.
+
+    Returns:
+        dict: The updated quantization state dictionary with the stored quantized tensor and its parameters.
+    """
+
+    quant_tensor = quant_tensor_full.value.cpu().detach()
+    scale = quant_tensor_full.scale.cpu().detach()
+
+    if as_numpy:
+        quant_tensor = quant_tensor.numpy()
+        scale = scale.numpy()
+
+    if len(scale.shape) <= 1:
+        scale = scale.item()
+
+    if name not in quant_state_dict:
+        quant_state_dict[name] = {}
+
+    quant_state_dict[name][param_type] = {
+        'value': quant_tensor,
+        'scale': scale,
+        'bit_width': int(quant_tensor_full.bit_width.item()),
+        'signed': quant_tensor_full.signed_t.item(),
+        'zero_point': quant_tensor_full.zero_point.item()
+    }
+
+    return quant_state_dict
+
+
 def get_quant_state_dict(quant_model: nn.Module, input_shape_or_quant_tensor: Union[tuple[int, ...], QuantTensor], as_numpy: bool = False):
     """Retrieves the quantized state dictionary of a quantized model.
 
@@ -60,7 +104,7 @@ def get_quant_state_dict(quant_model: nn.Module, input_shape_or_quant_tensor: Un
     # Make sure bias can be accessed. Enable this flag on all modules,
     # independently of whether they have a bias or not.
     for name, module in quant_model.named_modules():
-        if is_supported_weight_layer(module):
+        if is_supported_weight_layer(module) or is_gate_params(module):
             module.cache_inference_quant_bias = True
 
     if isinstance(input_shape_or_quant_tensor, QuantTensor):
@@ -94,45 +138,25 @@ def get_quant_state_dict(quant_model: nn.Module, input_shape_or_quant_tensor: Un
             }
         elif is_supported_weight_layer(module):
             quant_weight_full = module.quant_weight()
-            quant_weight = quant_weight_full.value.cpu().detach()
+            if quant_weight_full is not None:
+                quant_state_dict = store_quant_tensor(quant_weight_full, 'weight', quant_state_dict, name, as_numpy)
+
             quant_bias_full = module.quant_bias()
-
-            scale = quant_weight_full.scale.cpu().detach()
-
-            if as_numpy:
-                quant_weight = quant_weight.numpy()
-                scale = scale.numpy()
-
-            if len(scale.shape) == 0:
-                scale = scale.item()
-
-            quant_state_dict[name] = {
-                'weight': {
-                    'value': quant_weight,
-                    'scale': scale,
-                    'bit_width': int(quant_weight_full.bit_width.item()),
-                    'signed': quant_weight_full.signed_t.item(),
-                    'zero_point': quant_weight_full.zero_point.item()
-                }
-            }
-
             if quant_bias_full is not None:
-                quant_bias = quant_bias_full.value.cpu().detach()
-                scale = quant_bias_full.scale.cpu().detach()
+                quant_state_dict = store_quant_tensor(quant_bias_full, 'bias', quant_state_dict, name, as_numpy)
+                
+        if is_gate_params(module):
+            # TODO: Brevitas does not store _cached_bias when cache_inference_quant_bias is True for GateParams.  
+            # quant_bias_full = module.quant_bias()
+            # if quant_bias_full is not None:
+            #     quant_state_dict = store_quant_tensor(quant_bias_full, 'bias', quant_state_dict, name, as_numpy)
 
-                if as_numpy:
-                    quant_bias = quant_bias.numpy()
-                    scale = scale.numpy()
+            quant_input_weight_full = module.input_weight.quant_weight()
+            if quant_input_weight_full is not None:
+                quant_state_dict = store_quant_tensor(quant_input_weight_full, 'input_weight', quant_state_dict, name, as_numpy)
 
-                if len(scale.shape) <= 1:
-                    scale = scale.item()
-
-                quant_state_dict[name]['bias'] = {
-                    'value': quant_bias,
-                    'scale': scale,
-                    'bit_width': int(quant_bias_full.bit_width.item()),
-                    'signed': quant_bias_full.signed_t.item(),
-                    'zero_point': quant_bias_full.zero_point.item()
-                }
+            quant_hidden_weight_full = module.hidden_weight.quant_weight()
+            if quant_hidden_weight_full is not None:
+                quant_state_dict = store_quant_tensor(quant_hidden_weight_full, 'hidden_weight', quant_state_dict, name, as_numpy)
 
     return OrderedDict(quant_state_dict.items())
